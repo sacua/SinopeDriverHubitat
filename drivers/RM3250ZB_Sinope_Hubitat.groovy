@@ -33,8 +33,6 @@ metadata
         attribute "weeklyEnergy", "number"
         attribute "monthlyEnergy", "number"
         attribute "yearlyEnergy", "number"
-         
-        command "reset"
         
         preferences {
           input name: "PowerReport", type: "number", title: "Power change", description: "Amount of wattage difference to trigger power report (1..*)",  range: "1..*", defaultValue: 30
