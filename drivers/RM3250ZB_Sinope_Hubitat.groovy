@@ -15,7 +15,7 @@
 
 metadata
 {
-     definition(name: "Load Control V2", namespace: "sacua", author: "Samuel Cuerrier Auclair") {
+     definition(name: "Load Control Sinope", namespace: "sacua", author: "Samuel Cuerrier Auclair") {
         capability "Switch"
         capability "Configuration"
         capability "Refresh"
