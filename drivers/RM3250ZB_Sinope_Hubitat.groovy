@@ -1,6 +1,6 @@
 /**
  *  Sinope RM3250ZB Load control Device Driver for Hubitat
- *  Source: https://github.com/sacua/hubitat/blob/main/TH112xZB_Sinope_Thermostat_EnergyMerter.groovy
+ *  Source: https://github.com/sacua/SinopeDriverHubitat/blob/main/drivers/RM3250ZB_Sinope_Hubitat.groovy
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
