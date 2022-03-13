@@ -1,9 +1,9 @@
 ## TH112xZB_Sinope_Hubitat.groovy 
-Driver for the zigbee sinope thermostats. This driver allows to send via rule machine the outsite temperature to the thermostats using the notification capability of the thermostat. Moreover, the thermostat have an energy meter capabilities. This driver retrieve those values from the thermostat and estimate the cost of energy. Also, there is a slight delay (2 seconds) program for the heating set point. This delay make the thermostat tile from the Hubitat dashboard response more consistent.
+Driver for the zigbee sinope thermostats. At the installation, you must save the preferences and then click configure. The first time configure is click, a error may be log, this is the only time you should see an error from this driver. I'm currently trying to debug that.
 
-At the installation, you must save the preferences and then click configure. The first time configure is click, a error may be log, this is the only time you should see an error from this driver. I'm currently trying to debug that.
+This driver allows to send via rule machine the outsite temperature to the thermostats using the notification capability of the thermostat. Moreover, the thermostat have an energy meter capabilities. This driver retrieve the energy value from the thermostat and estimate the cost of energy. Also, there is a slight delay (2 seconds) programmed for the heating set point. This delay make the thermostat tile from the Hubitat dashboard response more consistent.
 
-Moreover, there is a command name Remove Old State Variable. This allows you to remove the state variable that are no longer necessary. The image below show the one that are necessary. Some of those variable may take about an hour to appers.
+Moreover, there is a command name "Remove Old State Variable". This allow you to remove the state variables that are no longer necessary. The image below shows the ones that are necessary. Some of those variables below may take about an hour to appers.
 
 ![image](https://user-images.githubusercontent.com/59889660/158075416-e1e8405b-1545-4564-839f-859db4389928.png)
 
