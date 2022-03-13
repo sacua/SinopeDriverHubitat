@@ -3,6 +3,11 @@ Driver for the zigbee sinope thermostats. This driver allows to send via rule ma
 
 At the installation, you must save the preferences and then click configure. The first time configure is click, a error may be log, this is the only time you should see an error from this driver. I'm currently trying to debug that.
 
+Moreover, there is a command name Remove Old State Variable. This allows you to remove the state variable that are no longer necessary. The image below show the one that are necessary. Some of those variable may take about an hour to appers.
+
+![image](https://user-images.githubusercontent.com/59889660/158075416-e1e8405b-1545-4564-839f-859db4389928.png)
+
+
 ## SP2600ZB_Sinope_Hubitat.groovy
 This driver is for the sinope switch. Althought it will works with several others Zigbee switch. Almost identical to the default driver, it however evaluate the energy of the switch by retriving this information from the switch.
 
