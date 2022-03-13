@@ -53,7 +53,7 @@ metadata
           input name: "prefDisplayOutdoorTemp", type:"bool", title: "Display outdoor temperature", defaultValue: true
         
           input name: "tempChange", type: "number", title: "Temperature change", description: "Minumum change of temperature reading to trigger report in Celsius/100, 5..50", range: "5..50", defaultValue: 50
-          input name: "HeatingChange", type: "number", title: "Heating change", description: "Minimum change in the PI heating in % to trigger power and PI heating reporting, 1..25", range: "1..25", defaultValue: 2
+          input name: "HeatingChange", type: "number", title: "Heating change", description: "Minimum change in the PI heating in % to trigger power and PI heating reporting, 1..25", range: "1..25", defaultValue: 5
           input name: "energyChange", type: "number", title: "Energy increment", description: "Minimum increment of the energy meter in Wh to trigger energy reporting, 10..*", range: "10..*", defaultValue: 10
           input name: "energyPrice", type: "float", title: "c/kWh Cost:", description: "Electric Cost per Kwh in cent", range: "0..*", defaultValue: 9.38
           input name: "txtEnable", type: "bool", title: "Enable logging info", defaultValue: true
