@@ -1,5 +1,5 @@
 ## TH112xZB_Sinope_Hubitat.groovy 
-Driver for the zigbee sinope thermostats. At the installation, you must save the preferences and then click configure. The first time configure is click, a error may be log, this is the only time you should see an error from this driver. I'm currently trying to debug that.
+Driver for the zigbee sinope thermostats. At the installation, <b>you must save the preferences and then click configure</b>. The first time configure is click, a error may be log, this is the only time you should see an error from this driver.
 
 This driver allows to send via rule machine the outsite temperature to the thermostats using the notification capability of the thermostat. Moreover, the thermostat have an energy meter capabilities. This driver retrieve the energy value from the thermostat and estimate the cost of energy. Also, there is a slight delay (2 seconds) programmed for the heating set point. This delay make the thermostat tile from the Hubitat dashboard response more consistent.
 
