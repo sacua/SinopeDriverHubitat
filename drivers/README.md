@@ -5,8 +5,7 @@ This driver allows to send via rule machine the outsite temperature to the therm
 
 Moreover, there is a command name "Remove Old State Variable". This allow you to remove the state variables that are no longer necessary. The image below shows the ones that are necessary. Some of those variables below may take about an hour to appers.
 
-![image](https://user-images.githubusercontent.com/59889660/158075416-e1e8405b-1545-4564-839f-859db4389928.png)
-
+![image](https://user-images.githubusercontent.com/59889660/158215165-86ceeff0-2c5a-4a67-9525-d322058fc7a2.png)
 
 ## SP2600ZB_Sinope_Hubitat.groovy
 This driver is for the sinope switch. Althought it will works with several others Zigbee switch. Almost identical to the default driver, it however evaluate the energy of the switch by retriving this information from the switch.
