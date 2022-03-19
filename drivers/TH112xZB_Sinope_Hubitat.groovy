@@ -46,7 +46,7 @@ metadata
         command "displayOn"
         command "displayOff"
         command "refreshTemp" //To refresh only the temperature reading
-		    command "removeOldStateVariable", ["string"]
+	command "removeOldStateVariable", ["string"]
         
         
         preferences {
