@@ -12,3 +12,6 @@ This driver is for the sinope switch. Althought it will works with several other
 
 ## RM3250ZB_Sinope_Hubitat.groovy
 This driver is for the sinope load control switch. Almost identical to the previous switch driver, except that the power divisor is not the same.
+
+## TH1300ZB_Sinope_Hubitat.groovy
+This is a Beta release. It is here for testing purpose.
