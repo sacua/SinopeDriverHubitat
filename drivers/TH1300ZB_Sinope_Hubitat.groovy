@@ -143,9 +143,9 @@ private createCustomMap(descMap){
 		map.name = "thermostatOperatingState"
 		map.value = getHeatingDemand(descMap.value)
 		def heatingDemandValue = map.value.toInteger()
-		def maxPowerValue = device.currentValue("maxPower").toInteger()
-		def powerValue = Math.round(maxPowerValue*heatingDemandValue/100)
-		sendEvent(name: "power", value: powerValue, unit: "W")
+		//def maxPowerValue = device.currentValue("maxPower").toInteger()
+		//def powerValue = Math.round(maxPowerValue*heatingDemandValue/100)
+		//sendEvent(name: "power", value: powerValue, unit: "W")
 		sendEvent(name: "heatingDemand", value: heatingDemandValue, unit: "%")
 		map.value = (map.value.toInteger() < 5) ? "idle" : "heating"
 
@@ -424,6 +424,7 @@ def refresh() {
 	runIn(2,"refreshTime")
 	def cmds = []
 	cmds += zigbee.readAttribute(0x0B04, 0x050D) //Read highest power delivered
+	cmds += zigbee.readAttribute(0x0B04, 0x050B) //Read thermostat Active power
 	cmds += zigbee.readAttribute(0x0201, 0x0000) //Read Local Temperature
 	cmds += zigbee.readAttribute(0x0201, 0x0008) //Read PI Heating State  
 	cmds += zigbee.readAttribute(0x0201, 0x0012) //Read Heat Setpoint
