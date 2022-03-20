@@ -590,7 +590,7 @@ def deviceNotification(text) {
 
 		//the value sent to the thermostat must be in C
 		if (getTemperatureScale() == 'F') {    
-	    		outdoorTemp = fahrenheitToCelsius(outdoorTemp).toDouble()
+	    		outdoorTemp = roundTwoPlaces(fahrenheitToCelsius(outdoorTemp).toDouble())
 		}        
 
 		int outdoorTempDevice = outdoorTemp*100
