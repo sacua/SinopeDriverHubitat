@@ -598,26 +598,26 @@ def lock() {
 }
 
 def deviceNotification(text) {
-    double outdoorTemp = text.toDouble()
-    def cmds = []
+	double outdoorTemp = text.toDouble()
+	def cmds = []
 
-    if (prefDisplayOutdoorTemp) {
-        if (txtEnable) log.info "deviceNotification() : Received outdoor weather : ${text} : ${outdoorTemp}"
-    	
+	if (prefDisplayOutdoorTemp) {
+		if (txtEnable) log.info "deviceNotification() : Received outdoor weather : ${text} : ${outdoorTemp}"
+
 		sendEvent(name: "outdoorTemp", value: outdoorTemp, unit: getTemperatureScale())
-        //the value sent to the thermostat must be in C
-        if (getTemperatureScale() == 'F') {    
-            outdoorTemp = fahrenheitToCelsius(outdoorTemp).toDouble()
-        }        
-        
-        int outdoorTempDevice = outdoorTemp*100
-        cmds += zigbee.writeAttribute(0xFF01, 0x0011, 0x21, 10800)   //set the outdoor temperature timeout to 3 hours
-        cmds += zigbee.writeAttribute(0xFF01, 0x0010, 0x29, outdoorTempDevice, [mfgCode: "0x119C"]) //set the outdoor temperature as integer
-    
-        // Submit zigbee commands    
-        sendZigbeeCommands(cmds)
-    } else {
-        if (txtEnable) log.info "deviceNotification() : Not setting any outdoor weather, since feature is disabled."  
+		//the value sent to the thermostat must be in C
+		if (getTemperatureScale() == 'F') {    
+			outdoorTemp = fahrenheitToCelsius(outdoorTemp).toDouble()
+		}        
+
+		int outdoorTempDevice = outdoorTemp*100
+		cmds += zigbee.writeAttribute(0xFF01, 0x0011, 0x21, 10800)   //set the outdoor temperature timeout to 3 hours
+		cmds += zigbee.writeAttribute(0xFF01, 0x0010, 0x29, outdoorTempDevice, [mfgCode: "0x119C"]) //set the outdoor temperature as integer
+
+		// Submit zigbee commands    
+		sendZigbeeCommands(cmds)
+	} else {
+		if (txtEnable) log.info "deviceNotification() : Not setting any outdoor weather, since feature is disabled."  
     }
 }
 
