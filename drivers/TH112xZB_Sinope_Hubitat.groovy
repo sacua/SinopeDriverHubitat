@@ -51,7 +51,7 @@ metadata
         
         preferences {
           input name: "prefDisplayOutdoorTemp", type:"bool", title: "Display outdoor temperature", defaultValue: true
-        
+	  input name: "prefTimeFormatParam", type: "enum", title: "Time Format", options:["24h", "12h AM/PM"], defaultValue: "24h", multiple: false, required: true
           input name: "tempChange", type: "number", title: "Temperature change", description: "Minumum change of temperature reading to trigger report in Celsius/100, 5..50", range: "5..50", defaultValue: 50
           input name: "HeatingChange", type: "number", title: "Heating change", description: "Minimum change in the PI heating in % to trigger power and PI heating reporting, 1..25", range: "1..25", defaultValue: 5
           input name: "energyChange", type: "number", title: "Energy increment", description: "Minimum increment of the energy meter in Wh to trigger energy reporting, 10..*", range: "10..*", defaultValue: 10
@@ -230,7 +230,18 @@ def configure(){
         cmds += zigbee.writeAttribute(0xFF01, 0x0011, 0x21, 10800)  //set the outdoor temperature timeout to 3 hours
     } else {
         cmds += zigbee.writeAttribute(0xFF01, 0x0011, 0x21, 10)  //set the outdoor temperature timeout in 10 seconds, under this value, does not seems to work
-    }     
+    }
+	
+    //Configure Clock Format
+    if (prefTimeFormatParam == null)
+	prefTimeFormatParam == "24h" as String
+    if (prefTimeFormatParam == "12h AM/PM") {//12h AM/PM "24h"
+	if(txtEnable) log.info "Set to 12h AM/PM"
+	cmds += zigbee.writeAttribute(0xFF01, 0x0114, 0x30, 0x0001)
+    } else {//24h
+	if(txtEnable) log.info "Set to 24h"
+	cmds += zigbee.writeAttribute(0xFF01, 0x0114, 0x30, 0x0000)
+    }
 
     if (cmds)
       sendZigbeeCommands(cmds) // Submit zigbee commands
