@@ -19,7 +19,7 @@
  */
 
 metadata {
-	definition(name: "TH112xZB Sinope Thermostat EnergyMerter", namespace: "sacua", author: "Samuel Cuerrier Auclair") {
+	definition(name: "Thermostat TH112xZB with energy merter", namespace: "sacua", author: "Samuel Cuerrier Auclair") {
 		capability "Thermostat"
 		capability "Configuration"
 		capability "TemperatureMeasurement"
