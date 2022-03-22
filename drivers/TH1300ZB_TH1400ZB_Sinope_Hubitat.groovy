@@ -20,7 +20,7 @@
 
 metadata
 {
-	definition(name: "TH1300ZB or TH1400ZB Thermostat", namespace: "sacua", author: "Samuel Cuerrier Auclair") {
+	definition(name: "Thermostat TH1300ZB or TH1400ZB with energy meter", namespace: "sacua", author: "Samuel Cuerrier Auclair") {
 		capability "Thermostat"
 		capability "Configuration"
 		capability "TemperatureMeasurement"
