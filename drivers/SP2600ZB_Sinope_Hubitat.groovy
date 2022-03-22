@@ -15,7 +15,7 @@
 
 metadata
 {
-     definition(name: "Switch-Sinope", namespace: "sacua", author: "Samuel Cuerrier Auclair") {
+     definition(name: "Switch SP2600ZB with energy meter", namespace: "sacua", author: "Samuel Cuerrier Auclair") {
         capability "Switch"
         capability "Configuration"
         capability "Refresh"
