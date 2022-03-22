@@ -1,0 +1,14 @@
+{
+	"author": "Samuel C. Auclair",
+	"gitHubUrl": "https://github.com/sacua",
+	"packages": [
+		{
+			"name": "Zigbee Driver for Sinope device",
+			"category": "Integrations",
+			"location": "https://raw.githubusercontent.com/sacua/SinopeDriverHubitat/main/drivers/packageManifest.json",
+			"description": "Drivers to take some features that are not included into the default driver, as the outside temperature or the energy meter",
+			"tags": ["Climate Control", "Energy Monitoring", "Repeaters & Extenders", "Zigbee"]
+		}
+	]
+	
+}
