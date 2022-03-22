@@ -1,0 +1,40 @@
+{
+  "packageName": "Zigbee Driver for Sinope device",
+  "author": "Samuel C. Auclair",
+  "minimumHEVersion": "2.1.9",
+  "dateReleased": "2022-03-21",
+  "drivers": [
+    {
+      "id": "99a7de4a-c104-473f-828b-b5caf2026bba",
+      "name": "Thermostat TH112xZB with energy merter",
+      "namespace": "sacua",
+      "location": "https://raw.githubusercontent.com/sacua/SinopeDriverHubitat/main/drivers/TH112xZB_Sinope_Hubitat.groovy",
+      "required": false,
+      "version": "1.0.0"
+    },
+    {
+      "id": "180d831e-22b7-4349-946f-5dd1d12e36c0",
+      "name": "Thermostat TH1300ZB or TH1400ZB with energy meter",
+      "namespace": "sacua",
+      "location": "https://raw.githubusercontent.com/sacua/SinopeDriverHubitat/main/drivers/TH1300ZB_TH1400ZB_Sinope_Hubitat.groovy",
+      "required": false,
+      "version": "1.0.0"
+    },
+    {
+      "id": "529918c4-f8ed-4fda-8ce4-1f68d34af962",
+      "name": "Switch SP2600ZB with energy meter",
+      "namespace": "sacua",
+      "location": "https://raw.githubusercontent.com/sacua/SinopeDriverHubitat/main/drivers/SP2600ZB_Sinope_Hubitat.groovy",
+      "required": false,
+      "version": "1.0.0"
+    },
+    {
+      "id": "04f92f69-c956-47bb-ae67-9bd6954a82a4",
+      "name": "Load Control RM3250ZB with energy meter",
+      "namespace": "sacua",
+      "location": "https://raw.githubusercontent.com/sacua/SinopeDriverHubitat/main/drivers/RM3250ZB_Sinope_Hubitat.groovy",
+      "required": false,
+      "version": "1.0.0"
+    }
+  ]
+}
