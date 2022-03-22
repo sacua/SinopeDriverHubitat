@@ -20,7 +20,7 @@
 
 metadata
 {
-	definition(name: "TH1300ZB Sinope Floor Thermostat with EnergyMerter", namespace: "sacua", author: "Samuel Cuerrier Auclair") {
+	definition(name: "TH1300ZB or TH1400ZB Thermostat", namespace: "sacua", author: "Samuel Cuerrier Auclair") {
 		capability "Thermostat"
 		capability "Configuration"
 		capability "TemperatureMeasurement"
