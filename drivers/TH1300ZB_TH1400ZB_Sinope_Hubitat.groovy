@@ -454,11 +454,13 @@ def refreshMaxPower() {
 }
 
 def refreshTime() {
-	def cmds = []
-
-	def d = new Date()
-	int curHourSeconds = (d.hours * 60 * 60) + (d.minutes * 60) + d.seconds
-	cmds += zigbee.writeAttribute(0xFF01, 0x0020, 0x23, curHourSeconds, [mfgCode: "0x119C"])
+	def cmds=[]    
+	// Time
+	def thermostatDate = new Date();
+	def thermostatTimeSec = thermostatDate.getTime() / 1000;
+	def thermostatTimezoneOffsetSec = thermostatDate.getTimezoneOffset() * 60;
+	int currentTimeToDisplay = Math.round(thermostatTimeSec - thermostatTimezoneOffsetSec - 946684800); //time from 2000-01-01 00:00
+	cmds += zigbee.writeAttribute(0xFF01, 0x0020, DataType.UINT32, currentTimeToDisplay, [mfgCode: "0x119C"])
 
 	if (cmds)
 		sendZigbeeCommands(cmds)
