@@ -1,6 +1,6 @@
 /**
  *  Sinope TH1300ZB Device Driver for Hubitat
- *  Source: https://github.com/sacua/SinopeDriverHubitat/blob/main/drivers/TH112xZB_Sinope_Hubitat.groovy
+ *  Source: https://github.com/sacua/SinopeDriverHubitat/blob/main/drivers/TH1300ZB_Sinope_Hubitat.groovy
  *
  *  Code derived from Sinope's SmartThing thermostat for their Zigbee protocol requirements, from the driver of erilaj and from the TH112xZB driver
  *  Source: https://www.sinopetech.com/wp-content/uploads/2019/03/Sinope-Technologies-TH1300ZB-V.1.0.5-SVN-503.txt
@@ -59,6 +59,7 @@ metadata
 			input name: "prefDisplayOutdoorTemp", type:"bool", title: "Display outdoor temperature", defaultValue: true
 			input name: "prefAirFloorModeParam", type: "enum", title: "Control mode (Floor or Ambient temperature)", options: ["Ambient", "Floor"], defaultValue: "Floor", multiple: false, required: false
 			input name: "prefFloorSensorTypeParam", type: "enum", title: "Probe type (Default: 10k)", options: ["10k", "12k"], defaultValue: "10k", multiple: false, required: false
+			input name: "FloorMaxAirTemperatureParam", type: "number", title:"Ambient limit in Celsius (5C to 36C / 41F to 97F)", description: "The maximum ambient temperature limit in Celsius when in floor control mode.", range: "5..97", required: false
 			input name: "FloorLimitMinParam", type: "number", title:"Floor low limit (5C to 36C / 41F to 97F)", description: "The minimum temperature limit of the floor when in ambient control mode.", range:"5..97", required: false
 			input name: "FloorLimitMaxParam", type: "number", title:"Floor high limit (5C to 36C / 41F to 97F)", description: "The maximum temperature limit of the floor when in ambient control mode.", range:"5..97", required: false
 			
@@ -143,9 +144,9 @@ private createCustomMap(descMap){
 		map.name = "thermostatOperatingState"
 		map.value = getHeatingDemand(descMap.value)
 		def heatingDemandValue = map.value.toInteger()
-		//def maxPowerValue = device.currentValue("maxPower").toInteger()
-		//def powerValue = Math.round(maxPowerValue*heatingDemandValue/100)
-		//sendEvent(name: "power", value: powerValue, unit: "W")
+		def maxPowerValue = device.currentValue("maxPower").toInteger()
+		def powerValue = Math.round(maxPowerValue*heatingDemandValue/100)
+		sendEvent(name: "power", value: powerValue, unit: "W")
 		sendEvent(name: "heatingDemand", value: heatingDemandValue, unit: "%")
 		map.value = (map.value.toInteger() < 5) ? "idle" : "heating"
 
@@ -291,7 +292,7 @@ def configure(){
 
 	//Set the control heating mode
 	if (prefAirFloorModeParam == null)
-		prefAirFloorModeParam = "Floor" as String
+		prefAirFloorModeParam = "Ambient" as String
 	if (prefAirFloorModeParam == "Ambient") {//Air mode
 		if (txtEnable) log.info "Set to Ambient mode"
 		cmds += zigbee.writeAttribute(0xFF01, 0x0105, 0x30, 0x0001)
@@ -311,6 +312,24 @@ def configure(){
 		cmds += zigbee.writeAttribute(0xFF01, 0x010B, 0x30, 0x0000)
 	}
 	
+	
+	//Set temperature limit for floor or air
+	if (FloorMaxAirTemperatureParam) {
+		def MaxAirTemperatureValue
+		if (getTemperatureScale() == 'F') {
+			MaxAirTemperatureValue = fahrenheitToCelsius(FloorMaxAirTemperatureParam).toInteger()
+		} else { // getTemperatureScale() == 'C'
+			MaxAirTemperatureValue = FloorMaxAirTemperatureParam.toInteger()
+		}
+		
+		MaxAirTemperatureValue = Math.min(Math.max(5,MaxAirTemperatureValue),36) //We make sure that it is within the limit
+		MaxAirTemperatureValue =  MaxAirTemperatureValue * 100
+		cmds += zigbee.writeAttribute(0xFF01, 0x0108, 0x29, MaxAirTemperatureValue)
+	}
+	else {
+		cmds += zigbee.writeAttribute(0xFF01, 0x0108, 0x29, 0x8000)
+	}
+	
 	if (FloorLimitMinParam) {
 		def FloorLimitMinValue
 		if (getTemperatureScale() == 'F') {
@@ -319,7 +338,7 @@ def configure(){
 			FloorLimitMinValue = FloorLimitMinParam.toInteger()
 		}
 	
-		FloorLimitMinValue = checkTemperature(FloorLimitMinValue)//check if the temperature is between the maximum and minimum
+		FloorLimitMinValue = Math.min(Math.max(5,FloorLimitMinValue),36) //We make sure that it is within the limit
 		FloorLimitMinValue =  FloorLimitMinValue * 100
 		cmds += zigbee.writeAttribute(0xFF01, 0x0109, 0x29, FloorLimitMinValue)
 	} else {
@@ -334,7 +353,7 @@ def configure(){
 			FloorLimitMaxValue = FloorLimitMaxParam.toInteger()
 		}
 		
-		FloorLimitMaxValue = checkTemperature(FloorLimitMaxValue)//check if the temperature is between the maximum and minimum
+		FloorLimitMaxValue = Math.min(Math.max(5,FloorLimitMaxValue),36) //We make sure that it is within the limit
 		FloorLimitMaxValue =  FloorLimitMaxValue * 100
 		cmds += zigbee.writeAttribute(0xFF01, 0x010A, 0x29, FloorLimitMaxValue)
 	}
@@ -697,22 +716,4 @@ private hex(value) {
   String hex = new BigInteger(Math.round(value).toString()).toString(16)
 
   return hex
-}
-
-private checkTemperature(number) {
-	def rtnNumber = number
-	if (getTemperatureScale() == 'F') {
-		if(number < 41) {
-			rtnNumber = 41
-		} else if (number > 97) {
-			rtnNumber = 97
-		}
-	} else {//getTemperatureScale() == 'C'
-		if (number < 5) {
-			rtnNumber = 5
-		} else if (number > 36) {
-			rtnNumber = 36
-		}
-	}
-	return rtnNumber
 }
