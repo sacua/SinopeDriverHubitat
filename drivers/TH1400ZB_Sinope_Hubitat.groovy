@@ -1,5 +1,5 @@
 /**
- *  Sinope TH1300ZB Device Driver for Hubitat
+ *  Sinope TH1400ZB Device Driver for Hubitat
  *  Source: https://github.com/sacua/SinopeDriverHubitat/blob/main/drivers/TH1400ZB_Sinope_Hubitat.groovy
  *
  *  Code derived from Sinope's SmartThing thermostat for their Zigbee protocol requirements, from the driver of erilaj and from the TH112xZB driver
@@ -18,7 +18,7 @@
 
 metadata
 {
-	definition(name: "Thermostat TH1300ZB or TH1400ZB with energy meter", namespace: "sacua", author: "Samuel Cuerrier Auclair") {
+	definition(name: "Thermostat TH1400ZB", namespace: "sacua", author: "Samuel Cuerrier Auclair") {
 		capability "Thermostat"
 		capability "Configuration"
 		capability "TemperatureMeasurement"
