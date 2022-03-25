@@ -25,7 +25,8 @@
       "name": "Thermostat TH1400ZB",
       "namespace": "sacua",
       "location": "https://raw.githubusercontent.com/sacua/SinopeDriverHubitat/main/drivers/TH1400ZB_Sinope_Hubitat.groovy",
-      "required": false
+      "required": false,
+      "version": "1.0.0"
     },
     {
       "id": "529918c4-f8ed-4fda-8ce4-1f68d34af962",
