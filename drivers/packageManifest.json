@@ -14,11 +14,18 @@
     },
     {
       "id": "180d831e-22b7-4349-946f-5dd1d12e36c0",
-      "name": "Thermostat TH1300ZB or TH1400ZB with energy meter",
+      "name": "Thermostat TH1300ZB with energy meter",
       "namespace": "sacua",
-      "location": "https://raw.githubusercontent.com/sacua/SinopeDriverHubitat/main/drivers/TH1300ZB_TH1400ZB_Sinope_Hubitat.groovy",
+      "location": "https://raw.githubusercontent.com/sacua/SinopeDriverHubitat/main/drivers/TH1300ZB_Sinope_Hubitat.groovy",
       "required": false,
       "version": "1.0.0"
+    },
+    {
+      "id": "65241f08-4e08-42cc-ba21-21fe2799c88b",
+      "name": "Thermostat TH1400ZB",
+      "namespace": "sacua",
+      "location": "https://raw.githubusercontent.com/sacua/SinopeDriverHubitat/main/drivers/TH1400ZB_Sinope_Hubitat.groovy",
+      "required": false
     },
     {
       "id": "529918c4-f8ed-4fda-8ce4-1f68d34af962",
