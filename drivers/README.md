@@ -14,4 +14,7 @@ This driver is for the sinope switch. Althought it will works with several other
 This driver is for the sinope load control switch. Almost identical to the previous switch driver, except that the power divisor is not the same.
 
 ## TH1300ZB_Sinope_Hubitat.groovy
-This is a Beta release. It is here for testing purpose.
+This is a Beta release. Have been tested with the collaboration of nice people, since I don't have this thermostat, so it should work without mistake.
+
+## TH1400ZB_Sinope_Hubitat.groovy
+This is a Beta release. Have been tested with the collaboration of nice people, since I don't have this thermostat, so it should work without mistake.
