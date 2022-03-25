@@ -128,9 +128,11 @@ private createCustomMap(descMap){
 		map.name = "thermostatOperatingState"
 		map.value = getHeatingDemand(descMap.value)
 		def heatingDemandValue = map.value.toInteger()
-		def maxPowerValue = device.currentValue("maxPower").toInteger()
-		def powerValue = Math.round(maxPowerValue*heatingDemandValue/100)
-		sendEvent(name: "power", value: powerValue, unit: "W")
+		if (device.currentValue("maxPower") != null) {
+			def maxPowerValue = device.currentValue("maxPower").toInteger()
+			def powerValue = Math.round(maxPowerValue*heatingDemandValue/100)
+			sendEvent(name: "power", value: powerValue, unit: "W")
+		}
 		sendEvent(name: "heatingDemand", value: heatingDemandValue, unit: "%")
 		map.value = (map.value.toInteger() < 5) ? "idle" : "heating"
 
@@ -209,6 +211,13 @@ def configure(){
 	def cmds = []
 
 	// Configure Reporting
+	if (tempChange == null)
+		tempChange = 50 as int
+	if (HeatingChange == null)
+		HeatingChange = 5 as int
+	if (energyChange == null)
+		energyChange = 10 as int
+			
 	cmds += zigbee.configureReporting(0x0201, 0x0000, 0x29, 30, 580, (int) tempChange)  //local temperature
 	cmds += zigbee.configureReporting(0x0201, 0x0008, 0x0020, 59, 590, (int) HeatingChange) //PI heating demand
 	cmds += zigbee.configureReporting(0x0702, 0x0000, DataType.UINT48, 59, 1799, (int) energyChange) //Energy reading
@@ -233,7 +242,7 @@ def configure(){
 	
 	//Configure Clock Format
 	if (prefTimeFormatParam == null)
-	prefTimeFormatParam == "24h" as String
+		prefTimeFormatParam == "24h" as String
 	if (prefTimeFormatParam == "12h AM/PM") {//12h AM/PM "24h"
 		if(txtEnable) log.info "Set to 12h AM/PM"
 		cmds += zigbee.writeAttribute(0xFF01, 0x0114, 0x30, 0x0001)
@@ -254,7 +263,9 @@ def energyCalculation() {
 		state.dailyEnergy = state.energyValue as BigInteger
 	if (device.currentValue("energy") == null)
 		sendEvent(name: "energy", value: 0, unit: "kWh")
-
+	if (energyPrice == null)
+		energyPrice = 9.38 as float
+			
 	if ((state.energyValue + state.offsetEnergy) < (device.currentValue("energy")*1000).toBigInteger()) //Although energy are parse as BigInteger, sometimes (like 1 times per month during heating  time) the value received is lower than the precedent but not zero..., so we define a new offset when that happen
 		state.offsetEnergy = (device.currentValue("energy")*1000 - state.energyValue).toBigInteger()
 
@@ -276,7 +287,9 @@ def energySecCalculation() { //This one is performed every hour to not overwhelm
 		state.monthlyEnergy = state.energyValue as BigInteger
 	if (state.yearlyEnergy == null)
 		state.yearlyEnergy = state.energyValue as BigInteger
-
+	if (energyPrice == null)
+		energyPrice = 9.38 as float
+			
 	float weeklyEnergy = roundTwoPlaces((state.energyValue + state.offsetEnergy - state.weeklyEnergy)/1000)
 	float monthlyEnergy = roundTwoPlaces((state.energyValue + state.offsetEnergy - state.monthlyEnergy)/1000)
 	float yearlyEnergy = roundTwoPlaces((state.energyValue + state.offsetEnergy - state.yearlyEnergy)/1000)
