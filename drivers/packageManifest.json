@@ -10,7 +10,7 @@
       "namespace": "sacua",
       "location": "https://raw.githubusercontent.com/sacua/SinopeDriverHubitat/main/drivers/TH112xZB_Sinope_Hubitat.groovy",
       "required": false,
-      "version": "1.0.0"
+      "version": "1.0.1"
     },
     {
       "id": "180d831e-22b7-4349-946f-5dd1d12e36c0",
