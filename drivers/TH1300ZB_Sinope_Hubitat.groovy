@@ -30,6 +30,7 @@ metadata
 		capability "EnergyMeter"
 		capability "Notification" // Receiving temperature notifications via RuleEngine
 		
+		attribute "outdoorTemp", "number"
 		attribute "heatingDemand", "number"
 		attribute "cost", "number"
 		attribute "dailyCost", "number"
