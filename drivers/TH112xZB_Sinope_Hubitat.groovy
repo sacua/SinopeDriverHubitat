@@ -29,6 +29,7 @@ metadata {
 		capability "EnergyMeter"
 		capability "Notification" // Receiving temperature notifications via RuleEngine
 
+		attribute "outdoorTemp", "number"
 		attribute "heatingDemand", "number"
 		attribute "cost", "number"
 		attribute "dailyCost", "number"
@@ -515,6 +516,7 @@ def deviceNotification(text) {
 	if (prefDisplayOutdoorTemp) {
 		if (txtEnable) log.info "deviceNotification() : Received outdoor weather : ${text} : ${outdoorTemp}"
 
+		sendEvent(name: "outdoorTemp", value: outdoorTemp, unit: getTemperatureScale())
 		//the value sent to the thermostat must be in C
 		if (getTemperatureScale() == 'F') {    
 			outdoorTemp = fahrenheitToCelsius(outdoorTemp).toDouble()
