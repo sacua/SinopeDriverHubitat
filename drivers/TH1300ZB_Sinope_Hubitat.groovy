@@ -16,9 +16,9 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
- v1.0.0 Initial commit
- v1.1.0 New feature relatated to floor control
- v1.1.1 Correction in the preference description
+ * v1.0.0 Initial commit
+ * v1.1.0 New feature relatated to floor control
+ * v1.1.1 Correction in the preference description
  */
 
 metadata
