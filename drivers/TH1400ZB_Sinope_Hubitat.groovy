@@ -14,6 +14,8 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
+ * v1.0.0 Initial commit
+ * v1.0.1 Correction in the preference description
  */
 
 metadata
@@ -44,7 +46,7 @@ metadata
 			input name: "prefDisplayOutdoorTemp", type:"bool", title: "Display outdoor temperature", defaultValue: true
 			input name: "prefAirFloorModeParam", type: "enum", title: "Control mode (Floor or Ambient temperature)", options: ["Ambient", "Floor"], defaultValue: "Floor", multiple: false, required: false
 			input name: "prefFloorSensorTypeParam", type: "enum", title: "Probe type (Default: 10k)", options: ["10k", "12k"], defaultValue: "10k", multiple: false, required: false
-			input name: "FloorMaxAirTemperatureParam", type: "number", title:"Ambient limit in Celsius (5C to 36C / 41F to 97F)", description: "The maximum ambient temperature limit in Celsius when in floor control mode.", range: "5..97", required: false
+			input name: "FloorMaxAirTemperatureParam", type: "number", title:"Ambient high limit (5C to 36C / 41F to 97F)", description: "The maximum ambient temperature limit when in floor control mode.", range: "5..97", required: false
 			input name: "FloorLimitMinParam", type: "number", title:"Floor low limit (5C to 36C / 41F to 97F)", description: "The minimum temperature limit of the floor when in ambient control mode.", range:"5..97", required: false
 			input name: "FloorLimitMaxParam", type: "number", title:"Floor high limit (5C to 36C / 41F to 97F)", description: "The maximum temperature limit of the floor when in ambient control mode.", range:"5..97", required: false
 			input name: "AuxiliaryCycleLengthParam", type: "enum", title:"Auxiliary cycle length", options: ["disable, 15 seconds", "30 minutes"], required: false
