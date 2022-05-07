@@ -16,6 +16,7 @@
  *
  * v1.0.0 Initial commit
  * v1.0.1 Correction in the preference description
+ * v1.1.0 Correction for attribute reading for heat and off command
  */
 
 metadata
