@@ -539,6 +539,8 @@ def heat() {
 	def cmds = []
 	cmds += zigbee.writeAttribute(0x0201, 0x001C, 0x30, 04, [:], 1000) // MODE
 	cmds += zigbee.writeAttribute(0x0201, 0x401C, 0x30, 04, [mfgCode: "0x1185"]) // SETPOINT MODE
+	cmds += zigbee.readAttribute(0x0201, 0x001C)
+	
 	// Submit zigbee commands
 	sendZigbeeCommands(cmds)
 }
@@ -548,8 +550,9 @@ def off() {
 
 	def cmds = []
 	cmds += zigbee.writeAttribute(0x0201, 0x001C, 0x30, 0)
-	cmds += zigbee.readAttribute(0x0201, 0x0008)
-
+	//cmds += zigbee.readAttribute(0x0201, 0x0008)
+	cmds += zigbee.readAttribute(0x0201, 0x001C)
+	
 	// Submit zigbee commands
 	sendZigbeeCommands(cmds)    
 	}
