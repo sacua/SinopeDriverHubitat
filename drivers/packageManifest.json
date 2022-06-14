@@ -3,7 +3,7 @@
   "author": "Samuel C. Auclair",
   "minimumHEVersion": "2.1.9",
   "dateReleased": "2022-06-13",
-	"releaseNotes": "Corection for the offset calculation for the energy meter (avoid to have super large value)",
+  "releaseNotes": "Corection for the offset calculation for the energy meter (avoid to have super large value)",
   "drivers": [
     {
       "id": "99a7de4a-c104-473f-828b-b5caf2026bba",
