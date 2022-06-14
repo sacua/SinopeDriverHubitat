@@ -20,6 +20,7 @@
  * v1.1.0 New feature relatated to floor control
  * v1.1.1 Correction in the preference description
  * v1.2.0 Correction for attribute reading for heat and off command
+ * v1.3.0 Correction for the offset calculation very rarely, the reading is a super large negative value, when that happen, the offset does not change
  */
 
 metadata
@@ -382,9 +383,12 @@ def energyCalculation() {
 		energyPrice = 9.38 as float
 	if (device.currentValue("energy") == null)
 		sendEvent(name: "energy", value: 0, unit: "kWh")
-    
-	if ((state.energyValue + state.offsetEnergy) < (device.currentValue("energy")*1000).toBigInteger()) //Although energy are parse as BigInteger, sometimes (like 1 times per month during heating  time) the value received is lower than the precedent but not zero..., so we define a new offset when that happen
-		state.offsetEnergy = (device.currentValue("energy")*1000 - state.energyValue).toBigInteger()
+        
+	if (state.energyValue + state.offsetEnergy < device.currentValue("energy")*1000) { //Although energy are parse as BigInteger, sometimes (like 1 times per month during heating  time) the value received is lower than the precedent but not zero..., so we define a new offset when that happen
+		BigInteger newOffset = device.currentValue("energy")*1000 - state.energyValue as BigInteger
+		if (newOffset < 1e10) //Sometimes when the hub boot, the offset is very large... munch too large
+		    state.offsetEnergy = newOffset
+	}
 
 	float dailyEnergy = roundTwoPlaces((state.energyValue + state.offsetEnergy - state.dailyEnergy)/1000)
 	float totalEnergy = (state.energyValue + state.offsetEnergy)/1000
