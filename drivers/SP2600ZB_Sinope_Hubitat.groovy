@@ -223,9 +223,12 @@ def energyCalculation() {
        state.dailyEnergy = state.energyValue as BigInteger
     if (device.currentValue("energy") == null)
         sendEvent(name: "energy", value: 0, unit: "kWh")
-    
-    if (state.energyValue + state.offsetEnergy < device.currentValue("energy")*1000) //Although energy are parse as BigInteger, sometimes (like 1 times per month during heating  time) the value received is lower than the precedent but not zero..., so we define a new offset when that happen
-        state.offsetEnergy = device.currentValue("energy")*1000 - state.energyValue as BigInteger
+     
+    if (state.energyValue + state.offsetEnergy < device.currentValue("energy")*1000) { //Although energy are parse as BigInteger, sometimes (like 1 times per month during heating  time) the value received is lower than the precedent but not zero..., so we define a new offset when that happen
+        BigInteger newOffset = device.currentValue("energy")*1000 - state.energyValue as BigInteger
+        if (newOffset < 1e10) //Sometimes when the hub boot, the offset is very large... munch too large
+            state.offsetEnergy = newOffset
+    }
     
     float dailyEnergy = roundTwoPlaces((state.energyValue + state.offsetEnergy - state.dailyEnergy)/1000)
     float totalEnergy = (state.energyValue + state.offsetEnergy)/1000
