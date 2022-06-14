@@ -11,6 +11,8 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
+ * v1.0.0 Initial commit
+ * v1.1.0 Correction for the offset calculation very rarely, the reading is a super large negative value, when that happen, the offset does not change and remove flash capability
  */
 
 metadata
@@ -22,7 +24,6 @@ metadata
         capability "Outlet"
         capability "PowerMeter"
         capability "EnergyMeter"
-        capability "Flash"
          
         attribute "cost", "number"
         attribute "dailyCost", "number"
@@ -37,7 +38,6 @@ metadata
         preferences {
           input name: "PowerReport", type: "number", title: "Power change", description: "Amount of wattage difference to trigger power report (1..*)",  range: "1..*", defaultValue: 30
           input name: "energyChange", type: "number", title: "Energy increment", description: "Minimum increment of the energy meter in Wh to trigger energy reporting (10..*)", range: "10..*", defaultValue: 10
-          input name: "Flashrate", type: "float", title: "Default flash rate in ms (250..*)", range: "250..*", defaultValue: 750
           input name: "energyPrice", type: "float", title: "c/kWh Cost:", description: "Electric Cost per Kwh in cent", range: "0..*", defaultValue: 9.38
           input name: "txtEnable", type: "bool", title: "Enable logging info", defaultValue: true
         }
@@ -191,29 +191,6 @@ def on() {
     def cmds = []
     cmds += zigbee.command(0x0006, 0x01)
     sendZigbeeCommands(cmds)    
-}
-
-def offFlash() {
-    if (state.flashing) sendZigbeeCommands([] + zigbee.command(0x0006, 0x00))
-}
-
-def flashOnOff(rateToFlash) {
-    if (state.flashing) {
-        sendZigbeeCommands([] + zigbee.command(0x0006, 0x01))
-        runInMillis(rateToFlash,"offFlash")
-        runInMillis(rateToFlash+rateToFlash,"flashOnOff",[data: rateToFlash])
-    }
-}
-
-def flash(rateToFlash) {
-    state.flashing = true
-    if (rateToFlash == null) {
-        Flashrate = Flashrate as float
-        rateToFlash = Flashrate/2 as Long
-    } else {
-        rateToFlash = rateToFlash/2 as Long
-    }
-    flashOnOff(rateToFlash)
 }
 
 def energyCalculation() {
