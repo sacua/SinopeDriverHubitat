@@ -76,6 +76,9 @@ def uninstalled() {
 
 // parse events into attributes
 def parse(String description) {
+    
+    log.debug "parse - description = ${description}"
+    
 	def result = []
 	def cluster = zigbee.parse(description)
 	if (description?.startsWith("read attr -")) {
@@ -105,7 +108,7 @@ private createCustomMap(descMap){
             map.name = "powerSource"
             map.value = getPowerSourceResult(descMap.value)
         
-        } else if (descMap.cluster == "0001" && descMap.attrId == "0021") {
+        } else if (descMap.cluster == "0001" && descMap.attrId == "0020") {
             map.name = "battery"
             map.value = getBatteryResult(descMap.value)
 			
@@ -150,7 +153,7 @@ def configure() {
 		
 
     // Configure Reporting
-    cmds += zigbee.configureReporting(0x0001, 0x0021, 0x20, 60, 3600, 1)  //Reporting for battery power
+    cmds += zigbee.configureReporting(0x0001, 0x0020, DataType.UINT8, 60, 3600, 1)  //Reporting for battery power
     cmds += zigbee.configureReporting(0x0404, 0x0000, DataType.UINT16, 30, 600, (int) flowRateChange)  //Report for flow rate
     cmds += zigbee.configureReporting(0x0702, 0x0000, DataType.UINT48, 59, 1799, (int) volumeChange) //Report for volume of water
     
@@ -165,7 +168,7 @@ def refresh() {
     def cmds = []    
     cmds += zigbee.readAttribute(0x0006, 0x0000) //Read open close state
 	cmds += zigbee.readAttribute(0x0000, 0x0007) //Read power source state
-	cmds += zigbee.readAttribute(0x0001, 0x0021) //Read battery level
+	cmds += zigbee.readAttribute(0x0001, 0x0020) //Read battery level
     cmds += zigbee.readAttribute(0x0404, 0x0000) //Read waterflow
     cmds += zigbee.readAttribute(0x0702, 0x0000) //Read volume of water delivered
     
@@ -202,26 +205,27 @@ private getValveMap() {
 }
 
 private getPowerSourceResult(value) {
-    if(value == "0081" || value == "0082"){
-    	def powersource = "mains"
+    if(value == "81" || value == "82"){
+    	powersource = "mains"
     }
-    else if(rawValue == "0003"){
-    	def powersource  = "battery"
+    else if(value == "03"){
+    	powersource  = "battery"
     }
-    else if(rawValue == "0004"){
-    	def powersource  = "dc"
+    else if(value == "04"){
+    	powersource  = "dc"
     }
     else{
-    	def powersource  = "unknown"
+    	powersource  = "unknown"
     }
-	return powersource
+    return powersource
 }
 
 
 private getRate(value) {
+  log.debug " getRate value = ${value}"
   if (value != null)
   {
-    def rate = Integer.parseInt(value, 16)
+    rate = Integer.parseInt(value, 16)
     return rate/10
   }
 }
@@ -229,16 +233,30 @@ private getRate(value) {
 private getBatteryResult(value) {
   if (value != null)
   {
-	def battery = Integer.parseInt(value, 16)
-    return battery/2
+    // based on some stuff I found on the net but don't know how accurate it is...
+    def batteryMin = 5.75f
+    def batteryMax = 6.37f
+    
+	  voltage = Integer.parseInt(value, 16)/10 // convert from units of 100mV to V
+    
+    if(voltage < batteryMin)
+      return 0
+    
+    output = ((voltage - batteryMin) / (batteryMax - batteryMin)) * 100
+    if (output < 100)
+        return (int)output
+    else
+        return 100i
+    
   }
 }
 
 
 private getVolume(value) {
+  log.debug "getVolume value = ${value}"
   if (value != null)
   {
-    BigInteger volume = new BigInteger(value,16)
+    volume = new BigInteger(value,16)
     return volume
   }
 }
