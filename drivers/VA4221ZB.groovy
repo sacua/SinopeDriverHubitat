@@ -30,7 +30,7 @@ metadata {
 
 
 		preferences {
-			input name: "flowrateChange", type: "number", title: "flow rate", description: "Minimum change in the flow rate to trigger autoreporting in ???", defaultValue: 1
+			input name: "flowRateChange", type: "number", title: "flow rate", description: "Minimum change in the flow rate to trigger autoreporting in ???", defaultValue: 1
 			input name: "volumeChange", type: "number", title: "Energy increment", description: "Minimum change in volume of water deliver to trigger auto reporting in ???", defaultValue: 1
 			input name: "txtEnable", type: "bool", title: "Enable logging info", defaultValue: true
 		}
@@ -107,7 +107,7 @@ private createCustomMap(descMap){
         
         } else if (descMap.cluster == "0001" && descMap.attrId == "0021") {
             map.name = "battery"
-            map.value = getBatteyResult(descMap.value)
+            map.value = getBatteryResult(descMap.value)
 			
         } else if (descMap.cluster == "0404" && descMap.attrId == "0000") {
             map.name = "rate"
@@ -142,9 +142,15 @@ def configure() {
         
     // Prepare our zigbee commands
     def cmds = []
+	
+    if (flowRateChange == null)
+		flowRateChange = 1 as int
+    if (volumeChange == null)
+		volumeChange = 1 as int
+		
 
     // Configure Reporting
-	cmds += zigbee.configureReporting(0x0001, 0x0021, 0x20, 60, 3600, 1)  //Reporting for battery power
+    cmds += zigbee.configureReporting(0x0001, 0x0021, 0x20, 60, 3600, 1)  //Reporting for battery power
     cmds += zigbee.configureReporting(0x0404, 0x0000, DataType.UINT16, 30, 600, (int) flowRateChange)  //Report for flow rate
     cmds += zigbee.configureReporting(0x0702, 0x0000, DataType.UINT48, 59, 1799, (int) volumeChange) //Report for volume of water
     
