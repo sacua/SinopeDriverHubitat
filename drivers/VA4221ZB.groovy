@@ -202,7 +202,7 @@ private getValveMap() {
 }
 
 private getPowerSourceResult(value) {
-	if(value == "0081" || value == "0082"){
+    if(value == "0081" || value == "0082"){
     	def powersource = "mains"
     }
     else if(rawValue == "0003"){
@@ -214,7 +214,7 @@ private getPowerSourceResult(value) {
     else{
     	def powersource  = "unknown"
     }
-	return result
+	return powersource
 }
 
 
