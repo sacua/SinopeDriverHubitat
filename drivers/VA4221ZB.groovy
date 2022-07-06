@@ -169,7 +169,7 @@ def refresh() {
     cmds += zigbee.readAttribute(0x0006, 0x0000) //Read open close state
 	cmds += zigbee.readAttribute(0x0000, 0x0007) //Read power source state
 	cmds += zigbee.readAttribute(0x0001, 0x0020) //Read battery level
-    cmds += zigbee.readAttribute(0x0404, 0x0000) //Read waterflow
+    cmds += zigbee.readAttribute(0x000c, 0x0055) //Read waterflow
     cmds += zigbee.readAttribute(0x0702, 0x0000) //Read volume of water delivered
     
     if (cmds)
