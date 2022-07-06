@@ -112,12 +112,12 @@ private createCustomMap(descMap){
             map.name = "battery"
             map.value = getBatteryResult(descMap.value)
 			
-        } else if (descMap.cluster == "0404" && descMap.attrId == "0000") {
+        } else if (descMap.cluster == "000c" && descMap.attrId == "0055") { //Trying other cluster id and attribute id
             map.name = "rate"
             map.value = getRate(descMap.value)
 			
         } else if (descMap.cluster == "0702" && descMap.attrId == "0000") {
-			map.name = "volume"
+	    map.name = "volume"
             map.value = getVolume(descMap.value)
         }
         
@@ -154,7 +154,7 @@ def configure() {
 
     // Configure Reporting
     cmds += zigbee.configureReporting(0x0001, 0x0020, DataType.UINT8, 60, 3600, 1)  //Reporting for battery power
-    cmds += zigbee.configureReporting(0x0404, 0x0000, DataType.UINT16, 30, 600, (int) flowRateChange)  //Report for flow rate
+    cmds += zigbee.configureReporting(0x000c, 0x0055, DataType.UINT16, 30, 600, (int) flowRateChange)  //Report for flow rate
     cmds += zigbee.configureReporting(0x0702, 0x0000, DataType.UINT48, 59, 1799, (int) volumeChange) //Report for volume of water
     
     if (cmds)
