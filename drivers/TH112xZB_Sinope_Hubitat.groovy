@@ -20,6 +20,7 @@
  * v1.1.0 Dont remember
  * v1.2.0 Correction for attribute reading for heat and off command
  * v1.3.0 Correction for the offset calculation very rarely, the reading is a super large negative value, when that happen, the offset does not change
+ * v1.4.0 Enable debug parse, send event at configure for the supported mode and possible to reset the offset value
  */
 
 metadata {
@@ -51,6 +52,7 @@ metadata {
 		command "displayOff"
 		command "refreshTemp" //To refresh only the temperature reading
 		command "removeOldStateVariable", ["string"]
+		command "resetEnergyOffset", ["number"]
 
 
 		preferences {
@@ -105,6 +107,7 @@ def uninstalled() {
 
 // parse events into attributes
 def parse(String description) {
+	if (txtEnable) log.debug "parse - description = ${description}"
 	def result = []
 	def cluster = zigbee.parse(description)
 	if (description?.startsWith("read attr -")) {
@@ -188,6 +191,8 @@ def configure(){
 	sendEvent(name: "coolingSetpoint", value:getTemperature("0BB8")) // 0x0BB8 =  30 Celsius
 	sendEvent(name: "thermostatFanMode", value:"auto") // We dont have a fan, so auto it is
 	updateDataValue("lastRunningMode", "heat") // heat is the only compatible mode for this device
+	sendEvent(name: "supportedThermostatModes", value:  "[\"off\", \"heat\"]") //We set the supported thermostat mode
+    	sendEvent(name: "supportedThermostatFanModes", value:  "[\"auto\"]") //We set the supported thermostat mode
 
 	try
 	{
@@ -261,6 +266,18 @@ def configure(){
 	return
 }
 
+def resetEnergyOffset(text) {
+	BigInteger offset = new BigInteger(text)
+	int offset = text.toInteger()
+	state.dailyEnergy = state.dailyEnergy - state.offsetEnergy + offset
+	state.weeklyEnergy = state.weeklyEnergy - state.offsetEnergy + offset
+	state.monthlyEnergy = state.monthlyEnergy - state.offsetEnergy + offset
+	state.yearlyEnergy = state.yearlyEnergy - state.offsetEnergy + offset
+	state.offsetEnergy = offset
+	energyCalculation()
+	energySecCalculation()
+}
+
 def energyCalculation() {
 	if (state.offsetEnergy == null)
 		state.offsetEnergy = 0 as BigInteger
@@ -273,7 +290,7 @@ def energyCalculation() {
 	
 	if (state.energyValue + state.offsetEnergy < device.currentValue("energy")*1000) { //Although energy are parse as BigInteger, sometimes (like 1 times per month during heating  time) the value received is lower than the precedent but not zero..., so we define a new offset when that happen
 		BigInteger newOffset = device.currentValue("energy")*1000 - state.energyValue as BigInteger
-		if (newOffset < 1e10) //Sometimes when the hub boot, the offset is very large... munch too large
+		if (newOffset < 1e10) //Sometimes when the hub boot, the offset is very large... too large
 		    state.offsetEnergy = newOffset
 	    }
 
