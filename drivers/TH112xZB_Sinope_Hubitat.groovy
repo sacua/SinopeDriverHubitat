@@ -267,15 +267,16 @@ def configure(){
 }
 
 def resetEnergyOffset(text) {
-	BigInteger offset = new BigInteger(text)
-	int offset = text.toInteger()
-	state.dailyEnergy = state.dailyEnergy - state.offsetEnergy + offset
-	state.weeklyEnergy = state.weeklyEnergy - state.offsetEnergy + offset
-	state.monthlyEnergy = state.monthlyEnergy - state.offsetEnergy + offset
-	state.yearlyEnergy = state.yearlyEnergy - state.offsetEnergy + offset
-	state.offsetEnergy = offset
-	energyCalculation()
-	energySecCalculation()
+	BigInteger newOffset = text.toBigInteger()
+	state.dailyEnergy = state.dailyEnergy - state.offsetEnergy + newOffset
+	state.weeklyEnergy = state.weeklyEnergy - state.offsetEnergy + newOffset
+	state.monthlyEnergy = state.monthlyEnergy - state.offsetEnergy + newOffset
+	state.yearlyEnergy = state.yearlyEnergy - state.offsetEnergy + newOffset
+	state.offsetEnergy = newOffset
+    	float totalEnergy = (state.energyValue + state.offsetEnergy)/1000
+    	sendEvent(name: "energy", value: totalEnergy, unit: "kWh")
+	runIn(2,energyCalculation)
+	runIn(2,energySecCalculation)
 }
 
 def energyCalculation() {
