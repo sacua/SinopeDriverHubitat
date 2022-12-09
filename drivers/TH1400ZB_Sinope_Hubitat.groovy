@@ -17,6 +17,7 @@
  * v1.0.0 Initial commit
  * v1.0.1 Correction in the preference description
  * v1.1.0 Correction for attribute reading for heat and off command
+ * v1.2.0 Enable debug parse, send event at configure for the supported mode and possible to reset the offset value
  */
 
 metadata
@@ -40,6 +41,7 @@ metadata
 		command "displayOff"
 		command "refreshTemp" //To refresh only the temperature reading
 		command "removeOldStateVariable", ["String"]
+		command "resetEnergyOffset", ["number"]
         
 
 		preferences {
@@ -99,6 +101,7 @@ def uninstalled() {
 
 // parse events into attributes
 def parse(String description) {
+    if (txtEnable) log.debug "parse - description = ${description}"
     def result = []
     def cluster = zigbee.parse(description)
     if (description?.startsWith("read attr -")) {
@@ -181,6 +184,8 @@ def configure(){
     sendEvent(name: "coolingSetpoint", value:getTemperature("0BB8")) // 0x0BB8 =  30 Celsius
     sendEvent(name: "thermostatFanMode", value:"auto") // We dont have a fan, so auto it is
     updateDataValue("lastRunningMode", "heat") // heat is the only compatible mode for this device NOT SURE WHAT IT IS...
+    sendEvent(name: "supportedThermostatModes", value:  "[\"off\", \"heat\"]") //We set the supported thermostat mode
+    sendEvent(name: "supportedThermostatFanModes", value:  "[\"auto\"]") //We set the supported thermostat mode
 
     try
     {
