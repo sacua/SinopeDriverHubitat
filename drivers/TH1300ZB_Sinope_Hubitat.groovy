@@ -21,6 +21,7 @@
  * v1.1.1 Correction in the preference description
  * v1.2.0 Correction for attribute reading for heat and off command
  * v1.3.0 Correction for the offset calculation very rarely, the reading is a super large negative value, when that happen, the offset does not change
+ * v1.4.0 Enable debug parse, send event at configure for the supported mode and possible to reset the offset value
  */
 
 metadata
@@ -58,6 +59,7 @@ metadata
 		command "displayOff"
 		command "refreshTemp" //To refresh only the temperature reading
 		command "removeOldStateVariable", ["String"]
+		command "resetEnergyOffset", ["number"]
         
 
 		preferences {
@@ -119,6 +121,7 @@ def uninstalled() {
 
 // parse events into attributes
 def parse(String description) {
+    if (txtEnable) log.debug "parse - description = ${description}"
     def result = []
     def cluster = zigbee.parse(description)
     if (description?.startsWith("read attr -")) {
@@ -372,6 +375,19 @@ def configure(){
 	if (cmds)
 	sendZigbeeCommands(cmds) // Submit zigbee commands
 	return
+}
+
+def resetEnergyOffset(text) {
+	BigInteger newOffset = text.toBigInteger()
+	state.dailyEnergy = state.dailyEnergy - state.offsetEnergy + newOffset
+	state.weeklyEnergy = state.weeklyEnergy - state.offsetEnergy + newOffset
+	state.monthlyEnergy = state.monthlyEnergy - state.offsetEnergy + newOffset
+	state.yearlyEnergy = state.yearlyEnergy - state.offsetEnergy + newOffset
+	state.offsetEnergy = newOffset
+    	float totalEnergy = (state.energyValue + state.offsetEnergy)/1000
+    	sendEvent(name: "energy", value: totalEnergy, unit: "kWh")
+	runIn(2,energyCalculation)
+	runIn(2,energySecCalculation)
 }
 
 def energyCalculation() {
