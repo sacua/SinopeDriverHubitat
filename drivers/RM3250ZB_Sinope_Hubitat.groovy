@@ -13,6 +13,7 @@
  *
  * v1.0.0 Initial commit
  * v1.1.0 Correction for the offset calculation very rarely, the reading is a super large negative value, when that happen, the offset does not change and remove flash capability
+ * v1.2.0 Enable debug parse and possible to reset the offset value
  */
 
 metadata
@@ -35,6 +36,8 @@ metadata
         attribute "monthlyEnergy", "number"
         attribute "yearlyEnergy", "number"
         
+        command "resetEnergyOffset", ["number"]
+          
         preferences {
           input name: "PowerReport", type: "number", title: "Power change", description: "Amount of wattage difference to trigger power report (1..*)",  range: "1..*", defaultValue: 30
           input name: "energyChange", type: "number", title: "Energy increment", description: "Minimum increment of the energy meter in Wh to trigger energy reporting (10..*)", range: "10..*", defaultValue: 10
@@ -93,6 +96,7 @@ def uninstalled() {
 
 // parse events into attributes
 def parse(String description) {
+    if (txtEnable) log.debug "parse - description = ${description}"
     def result = []
     def cluster = zigbee.parse(description)
     if (description?.startsWith("read attr -")) {
@@ -191,6 +195,19 @@ def on() {
     def cmds = []
     cmds += zigbee.command(0x0006, 0x01)
     sendZigbeeCommands(cmds)    
+}
+
+def resetEnergyOffset(text) {
+     BigInteger newOffset = text.toBigInteger()
+     state.dailyEnergy = state.dailyEnergy - state.offsetEnergy + newOffset
+     state.weeklyEnergy = state.weeklyEnergy - state.offsetEnergy + newOffset
+     state.monthlyEnergy = state.monthlyEnergy - state.offsetEnergy + newOffset
+     state.yearlyEnergy = state.yearlyEnergy - state.offsetEnergy + newOffset
+     state.offsetEnergy = newOffset
+     float totalEnergy = (state.energyValue + state.offsetEnergy)/1000
+     sendEvent(name: "energy", value: totalEnergy, unit: "kWh")
+     runIn(2,energyCalculation)
+     runIn(2,energySecCalculation)
 }
 
 def energyCalculation() {
