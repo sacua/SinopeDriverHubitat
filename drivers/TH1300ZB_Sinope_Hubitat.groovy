@@ -21,6 +21,8 @@
  * v1.1.1 Correction in the preference description
  * v1.2.0 Correction for attribute reading for heat and off command
  * v1.3.0 Correction for the offset calculation very rarely, the reading is a super large negative value, when that happen, the offset does not change
+ * v1.4.0 Enable debug parse, send event at configure for the supported mode and possible to reset the offset value
+ * v1.5.0 Enable custom time for reset and manual reset
  */
 
 metadata
@@ -57,7 +59,11 @@ metadata
 		command "displayOn"
 		command "displayOff"
 		command "refreshTemp" //To refresh only the temperature reading
-		command "removeOldStateVariable", ["String"]
+		command "resetEnergyOffset", ["number"]
+		command "resetDailyEnergy"
+		command "resetWeeklyEnergy"
+		command "resetMonthlyEnergy"
+		command "resetYearlyEnergy"
         
 
 		preferences {
@@ -73,6 +79,8 @@ metadata
 			input name: "HeatingChange", type: "number", title: "Heating change", description: "Minimum change in the PI heating in % to trigger power and PI heating reporting, 1..25", range: "1..25", defaultValue: 5
 			input name: "energyChange", type: "number", title: "Energy increment", description: "Minimum increment of the energy meter in Wh to trigger energy reporting, 10..*", range: "10..*", defaultValue: 10
 			input name: "energyPrice", type: "float", title: "c/kWh Cost:", description: "Electric Cost per Kwh in cent", range: "0..*", defaultValue: 9.38
+			input name: "weeklyReset", type: "enum", title: "Weekly reset day", description: "Day on which the weekly energy meter return to 0", options:["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"], defaultValue: "Sunday", multiple: false, required: true
+            		input name: "yearlyReset", type: "enum", title: "Yearly reset month", description: "Month on which the yearly energy meter return to 0", options:["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"], defaultValue: "January", multiple: false, required: true
 			input name: "txtEnable", type: "bool", title: "Enable logging info", defaultValue: true
 		}
 
@@ -119,6 +127,7 @@ def uninstalled() {
 
 // parse events into attributes
 def parse(String description) {
+    if (txtEnable) log.debug "parse - description = ${description}"
     def result = []
     def cluster = zigbee.parse(description)
     if (description?.startsWith("read attr -")) {
@@ -227,6 +236,8 @@ def configure(){
 	sendEvent(name: "coolingSetpoint", value:getTemperature("0BB8")) // 0x0BB8 =  30 Celsius
 	sendEvent(name: "thermostatFanMode", value:"auto") // We dont have a fan, so auto it is
 	updateDataValue("lastRunningMode", "heat") // heat is the only compatible mode for this device NOT SURE WHAT IT IS...
+	sendEvent(name: "supportedThermostatModes", value:  "[\"off\", \"heat\"]") //We set the supported thermostat mode
+    	sendEvent(name: "supportedThermostatFanModes", value:  "[\"auto\"]") //We set the supported thermostat mode
 
 	try
 	{
@@ -242,15 +253,59 @@ def configure(){
 	int timehour = Math.abs( new Random().nextInt() % 2) 
 	schedule(timesec + " " + timemin + " " + timehour + "/3 * * ? *",refreshTime) //refresh the clock at random begining and then every 3h
 	schedule("0 0 * * * ? *", energySecCalculation)
-	schedule("0 0 0 * * ? *", dailyEnergy)
-	schedule("0 0 0 ? * 1 *", weeklyEnergy)
-	schedule("0 0 0 1 * ? *", monthlyEnergy)
-	schedule("0 0 0 1 1 ? *", yearlyEnergy)
+	schedule("0 0 0 * * ? *", resetDailyEnergy)
+	schedule("0 0 0 1 * ? *", resetMonthlyEnergy)
 	timesec = Math.abs( new Random().nextInt() % 59) 
 	timemin = Math.abs( new Random().nextInt() % 59) 
 	timehour = Math.abs( new Random().nextInt() % 23) 
 	schedule(timesec + " " + timemin + " " + timehour + " * * ? *", refreshMaxPower) //refresh maximum power capacity of the equipement wired to the thermostat one time per day at a random moment
-
+    
+    if (weeklyReset == null)
+		weeklyReset = "Sunday" as String
+    if (yearlyReset == null)
+		yearlyReset = "January" as String
+    
+    if (yearlyReset == "January") {
+        schedule("0 0 0 1 1 ? *", resetYearlyEnergy)
+    } else if (yearlyReset == "February") {
+        schedule("0 0 0 1 2 ? *", resetYearlyEnergy)
+    } else if (yearlyReset == "March") {
+        schedule("0 0 0 1 3 ? *", resetYearlyEnergy)
+    } else if (yearlyReset == "April") {
+        schedule("0 0 0 1 4 ? *", resetYearlyEnergy)
+    } else if (yearlyReset == "May") {
+        schedule("0 0 0 1 5 ? *", resetYearlyEnergy)
+    } else if (yearlyReset == "February") {
+        schedule("0 0 0 1 6 ? *", resetYearlyEnergy)
+    } else if (yearlyReset == "February") {
+        schedule("0 0 0 1 7 ? *", resetYearlyEnergy)
+    } else if (yearlyReset == "February") {
+        schedule("0 0 0 1 8 ? *", resetYearlyEnergy)
+    } else if (yearlyReset == "February") {
+        schedule("0 0 0 1 9 ? *", resetYearlyEnergy)
+    } else if (yearlyReset == "February") {
+        schedule("0 0 0 1 10 ? *", resetYearlyEnergy)
+    } else if (yearlyReset == "February") {
+        schedule("0 0 0 1 11 ? *", resetYearlyEnergy)
+    } else if (yearlyReset == "February") {
+        schedule("0 0 0 1 12 ? *", resetYearlyEnergy)
+    }
+    
+    if (weeklyReset == "Sunday") {
+        schedule("0 0 0 ? * 1 *", resetWeeklyEnergy)
+    } else if (weeklyReset == "Monday") {
+        schedule("0 0 0 ? * 2 *", resetWeeklyEnergy)
+    } else if (weeklyReset == "Tuesday") {
+        schedule("0 0 0 ? * 3 *", resetWeeklyEnergy)
+    } else if (weeklyReset == "Wednesday") {
+        schedule("0 0 0 ? * 4 *", resetWeeklyEnergy)
+    } else if (weeklyReset == "Thursday") {
+        schedule("0 0 0 ? * 5 *", resetWeeklyEnergy)
+    } else if (weeklyReset == "Friday") {
+        schedule("0 0 0 ? * 6 *", resetWeeklyEnergy)
+    } else if (weeklyReset == "Saturday") {
+        schedule("0 0 0 ? * 7 *", resetWeeklyEnergy)
+    }
 
 	// Prepare our zigbee commands
 	def cmds = []
@@ -374,6 +429,21 @@ def configure(){
 	return
 }
 
+def resetEnergyOffset(text) {
+	if (text != null) {
+		BigInteger newOffset = text.toBigInteger()
+		state.dailyEnergy = state.dailyEnergy - state.offsetEnergy + newOffset
+		state.weeklyEnergy = state.weeklyEnergy - state.offsetEnergy + newOffset
+		state.monthlyEnergy = state.monthlyEnergy - state.offsetEnergy + newOffset
+		state.yearlyEnergy = state.yearlyEnergy - state.offsetEnergy + newOffset
+		state.offsetEnergy = newOffset
+		float totalEnergy = (state.energyValue + state.offsetEnergy)/1000
+		sendEvent(name: "energy", value: totalEnergy, unit: "kWh")
+		runIn(2,energyCalculation)
+		runIn(2,energySecCalculation)
+	}
+}
+
 def energyCalculation() {
 	if (state.offsetEnergy == null)
 		state.offsetEnergy = 0 as BigInteger
@@ -432,20 +502,49 @@ def energySecCalculation() { //This one is performed every hour to not overwhelm
 	sendEvent(name: "cost", value: totalCost, unit: "\$")        
 }
 
-def dailyEnergy() {
+def resetDailyEnergy() {
 	state.dailyEnergy = state.energyValue + state.offsetEnergy
+    if (energyPrice == null)
+        energyPrice = 9.38 as float
+    localCostPerKwh = energyPrice as float
+    float dailyEnergy = roundTwoPlaces((state.energyValue + state.offsetEnergy - state.dailyEnergy)/1000)
+	float dailyCost = roundTwoPlaces(dailyEnergy*localCostPerKwh/100)
+    sendEvent(name: "dailyEnergy", value: dailyEnergy, unit: "kWh")
+	sendEvent(name: "dailyCost", value: dailyCost, unit: "\$")
+    
 }
 
-def weeklyEnergy() {
+def resetWeeklyEnergy() {
 	state.weeklyEnergy = state.energyValue + state.offsetEnergy
+    if (energyPrice == null)
+        energyPrice = 9.38 as float
+    localCostPerKwh = energyPrice as float
+    float weeklyEnergy = roundTwoPlaces((state.energyValue + state.offsetEnergy - state.weeklyEnergy)/1000)
+	float weeklyCost = roundTwoPlaces(weeklyEnergy*localCostPerKwh/100)
+    sendEvent(name: "weeklyEnergy", value: weeklyEnergy, unit: "kWh")
+	sendEvent(name: "weeklyCost", value: weeklyCost, unit: "\$")
 }
 
-def monthlyEnergy() {
+def resetMonthlyEnergy() {
 	state.monthlyEnergy = state.energyValue + state.offsetEnergy
+    if (energyPrice == null)
+        energyPrice = 9.38 as float
+    localCostPerKwh = energyPrice as float
+    float monthlyEnergy = roundTwoPlaces((state.energyValue + state.offsetEnergy - state.monthlyEnergy)/1000)
+	float monthlyCost = roundTwoPlaces(monthlyEnergy*localCostPerKwh/100)
+    sendEvent(name: "monthlyEnergy", value: monthlyEnergy, unit: "kWh")
+	sendEvent(name: "monthlyCost", value: monthlyCost, unit: "\$")
 }
 
-def yearlyEnergy() {
+def resetYearlyEnergy() {
 	state.yearlyEnergy = state.energyValue + state.offsetEnergy
+    if (energyPrice == null)
+        energyPrice = 9.38 as float
+    localCostPerKwh = energyPrice as float
+    float yearlyEnergy = roundTwoPlaces((state.energyValue + state.offsetEnergy - state.yearlyEnergy)/1000)
+	float yearlyCost = roundTwoPlaces(yearlyEnergy*localCostPerKwh/100)
+    sendEvent(name: "yearlyEnergy", value: yearlyEnergy, unit: "kWh")
+	sendEvent(name: "yearlyCost", value: yearlyCost, unit: "\$")
 }
 
 def refresh() {
