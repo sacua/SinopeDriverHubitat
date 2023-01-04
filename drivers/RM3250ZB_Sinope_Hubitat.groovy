@@ -159,8 +159,8 @@ def configure(){
     }
     
     schedule("0 0 * * * ? *", energySecCalculation)
-    schedule("0 0 0 * * ? *", dailyEnergy)
-    schedule("0 0 0 1 * ? *", monthlyEnergy)
+    schedule("0 0 0 * * ? *", resetdailyEnergy)
+    schedule("0 0 0 1 * ? *", resetmonthlyEnergy)
     
      if (weeklyReset == null)
 		weeklyReset = "Sunday" as String
