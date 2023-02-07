@@ -15,6 +15,7 @@
  * v1.1.0 Correction for the offset calculation very rarely, the reading is a super large negative value, when that happen, the offset does not change and remove flash capability
  * v1.2.0 Enable debug parse and possible to reset the offset value
  * v1.3.0 Enable custom time for reset and manual reset
+ * v1.4.0 Correct typo mistake in Cron Scheduling
  */
 
 metadata
