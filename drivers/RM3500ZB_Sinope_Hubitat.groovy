@@ -145,6 +145,7 @@ private createCustomMap(descMap){
         } else if (descMap.cluster == "0402" && descMap.attrId == "0000") {
 		    map.name = "temperature"
 		    map.value = getTemperature(descMap.value)
+            runIn(2,hyst)
         }
         
     if (map) {
@@ -234,9 +235,12 @@ def configure(){
     cmds += zigbee.configureReporting(0x0B04, 0x050B, 0x29, 30, 600, (int) PowerReport)
     cmds += zigbee.configureReporting(0x0702, 0x0000, DataType.UINT48, 299, 1799, (int) energyChange) //Energy reading
     
-    if (cmds)
-      sendZigbeeCommands(cmds) // Submit zigbee commands
-    return
+    sendZigbeeCommands(cmds) // Submit zigbee commands
+    if (device.currentValue("mode") == null)
+        sendEvent(name: "mode", value: "manual")
+    runIn(1,refresh)
+    runIn(2,hyst) //in case the temperature setting change when in auto mode
+    
 }
 
 def refresh() {
@@ -248,8 +252,7 @@ def refresh() {
     cmds += zigbee.readAttribute(0x0B04, 0x050B) //Read thermostat Active power
     cmds += zigbee.readAttribute(0x0702, 0x0000) //Read energy delivered
     
-    if (cmds)
-        sendZigbeeCommands(cmds) // Submit zigbee commands
+    sendZigbeeCommands(cmds) // Submit zigbee commands
 }   
 
 
@@ -276,6 +279,8 @@ def manualMode() {
 
 
 def hyst() {
+    if (minTemp == null)
+        minTemp = 49 as float
     if ((float) minTemp - device.currentValue("temperature") > Float.parseFloat(Hyst) && device.currentValue("mode") == "auto" && device.currentValue("switch") == "off") {
         on()
     } else if (device.currentValue("temperature") - (float) minTemp > Float.parseFloat(Hyst) && device.currentValue("mode") == "auto" && device.currentValue("switch") == "on") {
