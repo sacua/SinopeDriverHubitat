@@ -16,7 +16,7 @@
 
 metadata
 {
-     definition(name: "Water heater controller RM3500ZB with energy meter", namespace: "sacua", author: "Samuel Cuerrier Auclair") {
+     definition(name: "Water heater controller RM3500ZB", namespace: "sacua", author: "Samuel Cuerrier Auclair") {
         capability "Switch"
         capability "Configuration"
         capability "Refresh"
@@ -214,8 +214,13 @@ def configure(){
 
     // Prepare our zigbee commands
     def cmds = []
-
     // Configure Reporting
+    if (tempChange == null)
+        tempChange = 50 as int
+    if (PowerReport == null)
+        PowerReport = 30 as int
+    if (energyChange == null)
+        energyChange = 10 as int
     cmds += zigbee.configureReporting(0x0402, 0x0000, 0x29, 30, 580, (int) tempChange)  //local temperature
     cmds += zigbee.configureReporting(0x0006, 0x0000, 0x10, 0, 600, null)           //On off state
     cmds += zigbee.configureReporting(0x0B04, 0x050B, 0x29, 30, 600, (int) PowerReport)
