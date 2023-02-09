@@ -16,7 +16,7 @@
 
 metadata
 {
-     definition(name: "Water heater controller RM3500ZB", namespace: "sacua", author: "Samuel Cuerrier Auclair") {
+     definition(name: "Water heater controller RM3500ZB with energy meter", namespace: "sacua", author: "Samuel Cuerrier Auclair") {
         capability "Switch"
         capability "Configuration"
         capability "Refresh"
@@ -34,21 +34,15 @@ metadata
         attribute "weeklyEnergy", "number"
         attribute "monthlyEnergy", "number"
         attribute "yearlyEnergy", "number"
-        attribute "mode", "String"
         
         command "resetEnergyOffset", ["number"]
         command "resetDailyEnergy"
         command "resetWeeklyEnergy"
         command "resetMonthlyEnergy"
         command "resetYearlyEnergy"
-        command "autoMode"
-        command "manualMode"
-      
           
         preferences {
-          input name: "Hyst", type: "number", title: "Hysteresis degrees", description: "Hysteresis in degrees C when in auto mode. Below the setpoint-hysteresis the controler switch to on, above the setpoint+hysteresis switch to off", range: "0.1..10", defaultValue: 1
-          input name: "minTemp", type: "number", title: "Water Temperature", description: "Water temperature to keep when in auto mode in C (30..60)", range: "30..60", defaultValue: 49
-          input name: "tempChange", type: "number", title: "Temperature change", description: "Minumum change of temperature reading to trigger report in Celsius/100, 10..200", range: "10..200", defaultValue: 50
+          input name: "tempChange", type: "number", title: "Temperature change", description: "Minumum change of temperature reading to trigger report in Celsius/100, 10..200", range: "10..200", defaultValue: 100
           input name: "PowerReport", type: "number", title: "Power change", description: "Amount of wattage difference to trigger power report (1..*)",  range: "1..*", defaultValue: 30
           input name: "energyChange", type: "number", title: "Energy increment", description: "Minimum increment of the energy meter in Wh to trigger energy reporting (10..*)", range: "10..*", defaultValue: 10
           input name: "energyPrice", type: "float", title: "c/kWh Cost:", description: "Electric Cost per Kwh in cent", range: "0..*", defaultValue: 9.38
@@ -129,7 +123,7 @@ def parse(String description) {
 private createCustomMap(descMap){
     def result = null
     def map = [: ]
-        if (descMap.cluster == "0006" && descMap.attrId == "0000") {
+        if (descMap.cluster == "0006" && descMap.attrId == "0000" && state.flashing == false) {
             map.name = "switch"
             map.value = getSwitchMap()[descMap.value]
             
@@ -140,12 +134,11 @@ private createCustomMap(descMap){
         
         } else if (descMap.cluster == "0702" && descMap.attrId == "0000") {
             state.energyValue = getEnergy(descMap.value) as BigInteger
-            runIn(2,energyCalculation)
+            runIn(2,"energyCalculation")
             
         } else if (descMap.cluster == "0402" && descMap.attrId == "0000") {
 		    map.name = "temperature"
 		    map.value = getTemperature(descMap.value)
-            runIn(2,hyst)
         }
         
     if (map) {
@@ -172,7 +165,7 @@ def configure(){
     schedule("0 0 0 * * ? *", resetDailyEnergy)
     schedule("0 0 0 1 * ? *", resetMonthlyEnergy)
     
-    if (weeklyReset == null)
+     if (weeklyReset == null)
 		weeklyReset = "Sunday" as String
     if (yearlyReset == null)
 		yearlyReset = "January" as String
@@ -223,24 +216,14 @@ def configure(){
     def cmds = []
 
     // Configure Reporting
-    if (tempChange == null)
-		tempChange = 50 as int
-    if (PowerReport == null)
-		PowerReport = 30 as int
-	if (energyChange == null)
-		energyChange = 10 as int
-            
     cmds += zigbee.configureReporting(0x0402, 0x0000, 0x29, 30, 580, (int) tempChange)  //local temperature
     cmds += zigbee.configureReporting(0x0006, 0x0000, 0x10, 0, 600, null)           //On off state
     cmds += zigbee.configureReporting(0x0B04, 0x050B, 0x29, 30, 600, (int) PowerReport)
     cmds += zigbee.configureReporting(0x0702, 0x0000, DataType.UINT48, 299, 1799, (int) energyChange) //Energy reading
     
-    sendZigbeeCommands(cmds) // Submit zigbee commands
-    if (device.currentValue("mode") == null)
-        sendEvent(name: "mode", value: "manual")
-    runIn(1,refresh)
-    runIn(2,hyst) //in case the temperature setting change when in auto mode
-    
+    if (cmds)
+      sendZigbeeCommands(cmds) // Submit zigbee commands
+    return
 }
 
 def refresh() {
@@ -249,45 +232,27 @@ def refresh() {
     def cmds = []
     cmds += zigbee.readAttribute(0x0402, 0x0000) //Read Local Temperature
     cmds += zigbee.readAttribute(0x0006, 0x0000) //Read On off state
-    cmds += zigbee.readAttribute(0x0B04, 0x050B) //Read thermostat Active power
+    cmds += zigbee.readAttribute(0x0B04, 0x050B)  //Read thermostat Active power
     cmds += zigbee.readAttribute(0x0702, 0x0000) //Read energy delivered
     
-    sendZigbeeCommands(cmds) // Submit zigbee commands
+    if (cmds)
+        sendZigbeeCommands(cmds) // Submit zigbee commands
 }   
 
 
 def off() {
+    state.flashing = false
     def cmds = []
     cmds += zigbee.command(0x0006, 0x00)
-    sendZigbeeCommands(cmds)
+    sendZigbeeCommands(cmds)    
 }
 
 def on() {
+    state.flashing = false
     def cmds = []
     cmds += zigbee.command(0x0006, 0x01)
-    sendZigbeeCommands(cmds)
+    sendZigbeeCommands(cmds)    
 }
-
-
-def autoMode() {
-    sendEvent(name: "mode", value: "auto")
-}
-
-def manualMode() {
-    sendEvent(name: "mode", value: "manual")
-}
-
-
-def hyst() {
-    if (minTemp == null)
-        minTemp = 49 as float
-    if ((float) minTemp - device.currentValue("temperature") > Float.parseFloat(Hyst) && device.currentValue("mode") == "auto" && device.currentValue("switch") == "off") {
-        on()
-    } else if (device.currentValue("temperature") - (float) minTemp > Float.parseFloat(Hyst) && device.currentValue("mode") == "auto" && device.currentValue("switch") == "on") {
-        off()
-    }
-}
-
 
 def resetEnergyOffset(text) {
      if (text != null) {
