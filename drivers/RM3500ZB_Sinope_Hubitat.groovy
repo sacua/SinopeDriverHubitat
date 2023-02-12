@@ -16,7 +16,7 @@
 
 metadata
 {
-     definition(name: "Water heater controller RM3500ZB", namespace: "sacua", author: "Samuel Cuerrier Auclair") {
+    definition(name: "Water heater controller RM3500ZB with energy meter", namespace: "sacua", author: "Samuel Cuerrier Auclair") {
         capability "Switch"
         capability "Configuration"
         capability "Refresh"
@@ -24,6 +24,7 @@ metadata
         capability "PowerMeter"
         capability "EnergyMeter"
         capability "TemperatureMeasurement"
+        capability "WaterSensor"
          
         attribute "cost", "number"
         attribute "dailyCost", "number"
@@ -40,24 +41,28 @@ metadata
         command "resetWeeklyEnergy"
         command "resetMonthlyEnergy"
         command "resetYearlyEnergy"
-          
-        preferences {
-          input name: "tempChange", type: "number", title: "Temperature change", description: "Minumum change of temperature reading to trigger report in Celsius/100, 10..200", range: "10..200", defaultValue: 100
-          input name: "PowerReport", type: "number", title: "Power change", description: "Amount of wattage difference to trigger power report (1..*)",  range: "1..*", defaultValue: 30
-          input name: "energyChange", type: "number", title: "Energy increment", description: "Minimum increment of the energy meter in Wh to trigger energy reporting (10..*)", range: "10..*", defaultValue: 10
-          input name: "energyPrice", type: "float", title: "c/kWh Cost:", description: "Electric Cost per Kwh in cent", range: "0..*", defaultValue: 9.38
-          input name: "weeklyReset", type: "enum", title: "Weekly reset day", description: "Day on which the weekly energy meter return to 0", options:["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"], defaultValue: "Sunday", multiple: false, required: true
-          input name: "yearlyReset", type: "enum", title: "Yearly reset month", description: "Month on which the yearly energy meter return to 0", options:["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"], defaultValue: "January", multiple: false, required: true
-          input name: "txtEnable", type: "bool", title: "Enable logging info", defaultValue: true
-        }
-        
+  
+	    fingerprint inClusters: "0000,0002,0003,0004,0005,0006,0402,0500,0702,0B04,0B05,FF01", outClusters: "000A,0019", manufacturer: "Sinope Technologies", model: "RM3500ZB", deviceJoinName: "Sinope Calypso Smart Water Heater Controller"
+    }     
+         
+    preferences {
+        input name: "tempChange", type: "number", title: "Temperature change", description: "Minumum change of temperature reading to trigger report in Celsius/100, 10..200", range: "10..200", defaultValue: 100
+        input name: "PowerReport", type: "number", title: "Power change", description: "Amount of wattage difference to trigger power report (1..*)",  range: "1..*", defaultValue: 30
+        input name: "energyChange", type: "number", title: "Energy increment", description: "Minimum increment of the energy meter in Wh to trigger energy reporting (10..*)", range: "10..*", defaultValue: 10
+        input name: "energyPrice", type: "float", title: "c/kWh Cost:", description: "Electric Cost per Kwh in cent", range: "0..*", defaultValue: 9.38
+        input name: "weeklyReset", type: "enum", title: "Weekly reset day", description: "Day on which the weekly energy meter return to 0", options:["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"], defaultValue: "Sunday", multiple: false, required: true
+        input name: "yearlyReset", type: "enum", title: "Yearly reset month", description: "Month on which the yearly energy meter return to 0", options:["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"], defaultValue: "January", multiple: false, required: true
+        //input name: "prefWaterTempMin", type: "bool", title: "Enable safety minimum water temperature 45°C/113°F feature", defaultValue: true
+        input name: "infoEnable", type: "bool", title: "Enable descriptionText logging", defaultValue: true
+        input name: "debugEnable", type: "bool", title: "Enable debug logging", defaultValue: true
     }
+    
 }
 
 //-- Installation ----------------------------------------------------------------------------------------
 
 def installed() {
-    if (txtEnable) log.info "installed() : running configure()"
+    if (infoEnable) log.info "installed() : running configure()"
     if (state.time == null)  
       state.time = now()
     if (state.energyValue == null) 
@@ -70,7 +75,7 @@ def installed() {
 }
 
 def updated() {
-    if (txtEnable) log.info "updated() : running configure()"
+    if (infoEnable) log.info "updated() : running configure()"
     
     if (state.time == null)  
       state.time = now()
@@ -89,7 +94,7 @@ def updated() {
 }
 
 def uninstalled() {
-    if (txtEnable) log.info "uninstalled() : unscheduling configure() and reset()"
+    if (infoEnable) log.info "uninstalled() : unscheduling configure() and reset()"
     try {    
         unschedule()
     } catch (errMsg) {
@@ -102,11 +107,10 @@ def uninstalled() {
 
 // parse events into attributes
 def parse(String description) {
-    if (txtEnable) log.debug "parse - description = ${description}"
+    if (debugEnable) log.debug "parse - description = ${description}"
     def result = []
     def cluster = zigbee.parse(description)
     if (description?.startsWith("read attr -")) {
-        // log.info description
         def descMap = zigbee.parseDescriptionAsMap(description)
         result += createCustomMap(descMap)
         if(descMap.additionalAttrs){
@@ -117,15 +121,17 @@ def parse(String description) {
             }
         }
     }
+    
     return result
 }
 
 private createCustomMap(descMap){
     def result = null
     def map = [: ]
-        if (descMap.cluster == "0006" && descMap.attrId == "0000" && state.flashing == false) {
+        if (descMap.cluster == "0006" && descMap.attrId == "0000") {
             map.name = "switch"
-            map.value = getSwitchMap()[descMap.value]
+            map.value = getSwitchStatus(descMap.value)
+            //map.value = getSwitchMap()[descMap.value]   // Changed method so that we can use log.info since this device has a physical switch on the device
             
         } else if (descMap.cluster == "0B04" && descMap.attrId == "050B") {
             map.name = "power"
@@ -139,7 +145,13 @@ private createCustomMap(descMap){
         } else if (descMap.cluster == "0402" && descMap.attrId == "0000") {
 		    map.name = "temperature"
 		    map.value = getTemperature(descMap.value)
+        
+        } else if (descMap.cluster == "0500" && descMap.attrId == "0002") {
+            map.name = "water"
+		    log.debug "water sensor change detected : " + descMap.value
+            map.value = getWaterStatus(descMap.value)
         }
+
         
     if (map) {
         def isChange = isStateChange(device, map.name, map.value.toString())
@@ -152,7 +164,7 @@ private createCustomMap(descMap){
 //-- Capabilities -----------------------------------------------------------------------------------------
 
 def configure(){    
-    if (txtEnable) log.info "configure()"    
+    if (infoEnable) log.info "configure()"    
     try
     {
         unschedule()
@@ -214,17 +226,21 @@ def configure(){
 
     // Prepare our zigbee commands
     def cmds = []
+
     // Configure Reporting
-    if (tempChange == null)
-        tempChange = 50 as int
-    if (PowerReport == null)
-        PowerReport = 30 as int
-    if (energyChange == null)
-        energyChange = 10 as int
     cmds += zigbee.configureReporting(0x0402, 0x0000, 0x29, 30, 580, (int) tempChange)  //local temperature
+    cmds += zigbee.configureReporting(0x0500, 0x0002, DataType.BITMAP16, 0, 600, null)
     cmds += zigbee.configureReporting(0x0006, 0x0000, 0x10, 0, 600, null)           //On off state
     cmds += zigbee.configureReporting(0x0B04, 0x050B, 0x29, 30, 600, (int) PowerReport)
     cmds += zigbee.configureReporting(0x0702, 0x0000, DataType.UINT48, 299, 1799, (int) energyChange) //Energy reading
+    
+	// Configure Water Temp Min
+	if (prefWaterTempMin) {
+		cmds += zigbee.writeAttribute(0xFF01, 0x0076, 0x21, 45)  //set water temp min to 45 (only acceptable value)
+	} else {
+		cmds += zigbee.writeAttribute(0xFF01, 0x0076, 0x21, 0)  //set water temp min to 0 (disabled)
+	}
+
     
     if (cmds)
       sendZigbeeCommands(cmds) // Submit zigbee commands
@@ -232,10 +248,12 @@ def configure(){
 }
 
 def refresh() {
-    if (txtEnable) log.info "refresh()"
+    if (infoEnable) log.info "refresh()"
     
     def cmds = []
     cmds += zigbee.readAttribute(0x0402, 0x0000) //Read Local Temperature
+    cmds += zigbee.readAttribute(0x0500, 0x0002) //Read Water leak
+    cmds += zigbee.readAttribute(0xFF01, 0x0076) //Read state of water temp safety setting (45 or 0) 
     cmds += zigbee.readAttribute(0x0006, 0x0000) //Read On off state
     cmds += zigbee.readAttribute(0x0B04, 0x050B)  //Read thermostat Active power
     cmds += zigbee.readAttribute(0x0702, 0x0000) //Read energy delivered
@@ -382,15 +400,46 @@ private void sendZigbeeCommands(cmds) {
 }
 
 private getTemperature(value) {
-	if (value != null) {
+    // First test if temp sensor connected to device
+    if (value == "8000") {
+        return 0 
+    }
+    
+    if (value != null) {
 		def celsius = Integer.parseInt(value, 16) / 100
 		if (getTemperatureScale() == "C") {
-			return celsius
+            return celsius
 		}
 		else {
-			return Math.round(celsiusToFahrenheit(celsius))
+            return Math.round(celsiusToFahrenheit(celsius))
 		}
 	}
+}
+
+private getWaterStatus(value) {
+    switch(value) {
+        case "0030" :
+            if (infoEnable) log.info "Water sensor dry"
+            return "dry"
+            break
+        case "0031" :
+            if (infoEnable) log.info "Water sensor wet"
+            return "wet"
+            break
+    }
+}
+
+private getSwitchStatus(value) {
+    switch(value) {
+        case "00" :
+            if (infoEnable) log.info "Switch was turned off"
+            return "off"
+            break
+        case "01" :
+            if (infoEnable) log.info "Switch was turned on"
+            return "on"
+            break
+    }
 }
 
 private getSwitchMap() {
