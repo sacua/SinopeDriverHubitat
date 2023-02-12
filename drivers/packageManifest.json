@@ -4,6 +4,7 @@
   "minimumHEVersion": "2.1.9",
   "dateReleased": "2023-01-04",
   "releaseNotes": "Enable custom energy reset time and manual reset for the energy meter. Enable debug parse.\n2023-02-07 Correct typo mistake in RM3205ZB driver\n2023-02-12 Adding RM3500ZB water heater controller driver",
+  "communityLink": "https://community.hubitat.com/t/drivers-for-zigbee-sinope-devices/91960",
   "drivers": [
     {
       "id": "99a7de4a-c104-473f-828b-b5caf2026bba",
