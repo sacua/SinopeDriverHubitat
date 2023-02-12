@@ -44,7 +44,7 @@
       "location": "https://raw.githubusercontent.com/sacua/SinopeDriverHubitat/main/drivers/RM3250ZB_Sinope_Hubitat.groovy",
       "required": false,
       "version": "1.4.0"
-    }
+    },
     {
       "id": "bfa6c9d4-aae3-11ed-afa1-0242ac120002",
       "name": "Water heater controller RM3500ZB with energy meter",
