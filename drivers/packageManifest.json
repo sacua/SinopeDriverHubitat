@@ -51,7 +51,7 @@
       "namespace": "sacua",
       "location": "https://raw.githubusercontent.com/sacua/SinopeDriverHubitat/main/drivers/RM3500ZB_Sinope_Hubitat.groovy",
       "required": false,
-      "version": "1.0.0"
+      "version": "1.1.0"
     }    
   ]
 }
