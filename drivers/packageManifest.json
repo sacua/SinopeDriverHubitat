@@ -3,7 +3,7 @@
   "author": "Samuel C. Auclair",
   "minimumHEVersion": "2.1.9",
   "dateReleased": "2023-01-04",
-  "releaseNotes": "Enable custom energy reset time and manual reset for the energy meter. Enable debug parse.\n2023-02-07 Correct typo mistake in RM3205ZB driver",
+  "releaseNotes": "Enable custom energy reset time and manual reset for the energy meter. Enable debug parse.\n2023-02-07 Correct typo mistake in RM3205ZB driver\n2023-02-12 Adding RM3500ZB water heater controller driver",
   "drivers": [
     {
       "id": "99a7de4a-c104-473f-828b-b5caf2026bba",
@@ -45,5 +45,13 @@
       "required": false,
       "version": "1.4.0"
     }
+    {
+      "id": "bfa6c9d4-aae3-11ed-afa1-0242ac120002",
+      "name": "Water heater controller RM3500ZB with energy meter",
+      "namespace": "sacua",
+      "location": "https://raw.githubusercontent.com/sacua/SinopeDriverHubitat/main/drivers/RM3500ZB_Sinope_Hubitat.groovy",
+      "required": false,
+      "version": "1.0.0"
+    }    
   ]
 }
