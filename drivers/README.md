@@ -13,6 +13,9 @@ This driver is for the sinope outlet/switch. It will most likely works with seve
 ## RM3250ZB_Sinope_Hubitat.groovy
 This driver is for the sinope load control switch. Almost identical to the previous switch driver, except that the power divisor is not the same.
 
+## RM3500ZB_Sinope_Hubitat.groovy 
+This driver is for the sinope water heater controller. It includes an energy meter, water temperature attribute and the water leak sensor.
+
 ## TH1300ZB_Sinope_Hubitat.groovy
 This is a Beta release. Have been tested with the collaboration of nice people, since I don't have this thermostat, so it should work without mistake. Don't hesistate to write to me here or via the community of hubitat (samuel.c.auclair) to send error if there is some.
 
