@@ -130,36 +130,37 @@ def parse(String description) {
 private createCustomMap(descMap){
     def result = null
     def map = [: ]
-        if (descMap.cluster == "0006" && descMap.attrId == "0000") {
-            map.name = "switch"
-            map.value = getSwitchStatus(descMap.value)
-            //map.value = getSwitchMap()[descMap.value]   // Changed method so that we can use log.info since this device has a physical switch on the device
 
-        } else if (descMap.cluster == "0B04" && descMap.attrId == "050B") {
-            map.name = "power"
-            map.value = getActivePower(descMap.value)
-            map.unit = "W"
+    if (descMap.cluster == "0006" && descMap.attrId == "0000") {
+        map.name = "switch"
+        map.value = getSwitchStatus(descMap.value)
+        //map.value = getSwitchMap()[descMap.value]   // Changed method so that we can use log.info since this device has a physical switch on the device
 
-        } else if (descMap.cluster == "0702" && descMap.attrId == "0000") {
-            state.energyValue = getEnergy(descMap.value) as BigInteger
-            runIn(2,"energyCalculation")
+    } else if (descMap.cluster == "0B04" && descMap.attrId == "050B") {
+        map.name = "power"
+        map.value = getActivePower(descMap.value)
+        map.unit = "W"
 
-        } else if (descMap.cluster == "0402" && descMap.attrId == "0000") {
-		    map.name = "temperature"
-		    map.value = getTemperature(descMap.value)
+    } else if (descMap.cluster == "0702" && descMap.attrId == "0000") {
+        state.energyValue = getEnergy(descMap.value) as BigInteger
+        runIn(2,"energyCalculation")
 
-        } else if (descMap.cluster == "0500" && descMap.attrId == "0002") {
-            map.name = "water"
-		    log.debug "water sensor change detected : " + descMap.value
-            map.value = getWaterStatus(descMap.value)
-        }
+    } else if (descMap.cluster == "0402" && descMap.attrId == "0000") {
+		map.name = "temperature"
+		map.value = getTemperature(descMap.value)
 
+    } else if (descMap.cluster == "0500" && descMap.attrId == "0002") {
+        map.name = "water"
+        if (debugEnable) log.debug "water sensor change detected : " + descMap.value
+        map.value = getWaterStatus(descMap.value)
+    }
 
     if (map) {
         def isChange = isStateChange(device, map.name, map.value.toString())
         map.displayed = isChange
         result = createEvent(map)
     }
+
     return result
 }
 
@@ -273,14 +274,14 @@ def refresh() {
 
 
 def off() {
-    log.debug "command switch OFF"
+    if (debugEnable) log.debug "command switch OFF"
     def cmds = []
     cmds += zigbee.command(0x0006, 0x00)
     sendZigbeeCommands(cmds)
 }
 
 def on() {
-    log.debug "command switch ON"
+    if (debugEnable) log.debug "command switch ON"
     def cmds = []
     cmds += zigbee.command(0x0006, 0x01)
     sendZigbeeCommands(cmds)
