@@ -143,9 +143,9 @@ private createCustomMap(descMap){
         map.descriptionText = "Current power is ${map.value} ${map.unit}"
 
     } else if (descMap.cluster == "0702" && descMap.attrId == "0000") {
+        // energy event will be sent from energyCalculation()
         state.energyValue = getEnergy(descMap.value) as BigInteger
         runIn(2,"energyCalculation")
-        // not generating an event here ?
 
     } else if (descMap.cluster == "0402" && descMap.attrId == "0000") {
 		map.name = "temperature"
@@ -162,8 +162,8 @@ private createCustomMap(descMap){
 
     if (map) {
         def isChange = isStateChange(device, map.name, map.value.toString())
-        map.displayed = isChange       // not sure what this does
-        map.isStateChange = isChange   // see sendEvent() documentation
+        map.displayed = isChange         // not sure what this does as it's not a documented parameter for sendEvent()
+        //map.isStateChange = isChange   // don't set, let default platform filtering happen.  See sendEvent() documentation
         if (debugEnable) log.debug "event map : ${map}"
         result = createEvent(map)
     }
@@ -295,17 +295,17 @@ def on() {
 }
 
 def resetEnergyOffset(text) {
-     if (text != null) {
-          BigInteger newOffset = text.toBigInteger()
-          state.dailyEnergy = state.dailyEnergy - state.offsetEnergy + newOffset
-          state.weeklyEnergy = state.weeklyEnergy - state.offsetEnergy + newOffset
-          state.monthlyEnergy = state.monthlyEnergy - state.offsetEnergy + newOffset
-          state.yearlyEnergy = state.yearlyEnergy - state.offsetEnergy + newOffset
-          state.offsetEnergy = newOffset
-          float totalEnergy = (state.energyValue + state.offsetEnergy)/1000
-          sendEvent(name: "energy", value: totalEnergy, unit: "kWh")
-          runIn(2,energyCalculation)
-          runIn(2,energySecCalculation)
+    if (text != null) {
+        BigInteger newOffset = text.toBigInteger()
+        state.dailyEnergy = state.dailyEnergy - state.offsetEnergy + newOffset
+        state.weeklyEnergy = state.weeklyEnergy - state.offsetEnergy + newOffset
+        state.monthlyEnergy = state.monthlyEnergy - state.offsetEnergy + newOffset
+        state.yearlyEnergy = state.yearlyEnergy - state.offsetEnergy + newOffset
+        state.offsetEnergy = newOffset
+        float totalEnergy = (state.energyValue + state.offsetEnergy)/1000
+        sendEvent(name: "energy", value: totalEnergy, unit: "kWh", descriptionText: "Total energy is ${totalEnergy} kWh")
+        runIn(2,energyCalculation)
+        runIn(2,energySecCalculation)
      }
 }
 
@@ -317,7 +317,7 @@ def energyCalculation() {
     if (energyPrice == null)
 		energyPrice = 9.38 as float
     if (device.currentValue("energy") == null)
-        sendEvent(name: "energy", value: 0, unit: "kWh")
+        sendEvent(name: "energy", value: 0, unit: "kWh", descriptionText: "Total energy reset to 0 kWh")
     else {
         if (state.energyValue + state.offsetEnergy < device.currentValue("energy")*1000) { //Although energy are parse as BigInteger, sometimes (like 1 times per month during heating  time) the value received is lower than the precedent but not zero..., so we define a new offset when that happen
             BigInteger newOffset = device.currentValue("energy")*1000 - state.energyValue as BigInteger
@@ -334,7 +334,7 @@ def energyCalculation() {
 
     sendEvent(name: "dailyEnergy", value: dailyEnergy, unit: "kWh")
     sendEvent(name: "dailyCost", value: dailyCost, unit: "\$")
-    sendEvent(name: "energy", value: totalEnergy, unit: "kWh")
+    sendEvent(name: "energy", value: totalEnergy, unit: "kWh", descriptionText: "Total energy is ${totalEnergy} kWh")
 }
 
 def energySecCalculation() { //This one is performed every hour to not overwhelm the number of events which will create a warning in hubitat main page
@@ -441,11 +441,11 @@ private getTemperature(value) {
 private getWaterStatus(value) {
     switch(value) {
         case "0030" :
-            if (infoEnable) log.info "Water sensor dry"
+            if (infoEnable) log.info "Water sensor is dry"
             return "dry"
             break
         case "0031" :
-            if (infoEnable) log.info "Water sensor wet"
+            if (infoEnable) log.info "Water sensor is wet"
             return "wet"
             break
     }
