@@ -3,7 +3,7 @@
   "author": "Samuel C. Auclair",
   "minimumHEVersion": "2.1.9",
   "dateReleased": "2023-02-12",
-  "releaseNotes": "Enable custom energy reset time and manual reset for the energy meter. Enable debug parse.\n2023-02-07 Correct typo mistake in RM3205ZB driver\n2023-02-12 Adding RM3500ZB calypso water heater controller driver\n2023-02-13 Remove some bugs in the RM3500ZB driver",
+  "releaseNotes": "Enable custom energy reset time and manual reset for the energy meter. Enable debug parse.\n2023-02-07 Correct typo mistake in RM3205ZB driver\n2023-02-12 Adding RM3500ZB calypso water heater controller driver\n2023-02-13 Remove some bugs in the RM3500ZB driver\n2023-02-14 Cosmetic change and better description in the RM3500ZB driver",
   "communityLink": "https://community.hubitat.com/t/drivers-for-zigbee-sinope-devices/91960",
   "drivers": [
     {
@@ -52,7 +52,7 @@
       "namespace": "sacua",
       "location": "https://raw.githubusercontent.com/sacua/SinopeDriverHubitat/main/drivers/RM3500ZB_Sinope_Hubitat.groovy",
       "required": false,
-      "version": "1.0.1"
+      "version": "1.0.2"
     }    
   ]
 }
