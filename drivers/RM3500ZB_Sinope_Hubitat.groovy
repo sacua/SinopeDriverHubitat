@@ -12,6 +12,7 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  * v1.0.0 Initial commit
+ * v1.0.1 Remove some bugs
  */
 
 metadata
@@ -228,6 +229,13 @@ def configure(){
     def cmds = []
 
     // Configure Reporting
+    if (tempChange == null)
+		tempChange = 100 as int
+    if (PowerReport == null)
+		PowerReport = 30 as int
+	if (energyChange == null)
+		energyChange = 10 as int
+            
     cmds += zigbee.configureReporting(0x0402, 0x0000, 0x29, 30, 580, (int) tempChange)  //local temperature
     cmds += zigbee.configureReporting(0x0500, 0x0002, DataType.BITMAP16, 0, 600, null)
     cmds += zigbee.configureReporting(0x0006, 0x0000, 0x10, 0, 600, null)           //On off state
@@ -264,14 +272,12 @@ def refresh() {
 
 
 def off() {
-    state.flashing = false
     def cmds = []
     cmds += zigbee.command(0x0006, 0x00)
     sendZigbeeCommands(cmds)    
 }
 
 def on() {
-    state.flashing = false
     def cmds = []
     cmds += zigbee.command(0x0006, 0x01)
     sendZigbeeCommands(cmds)    
@@ -297,13 +303,16 @@ def energyCalculation() {
         state.offsetEnergy = 0 as BigInteger
     if (state.dailyEnergy == null)
        state.dailyEnergy = state.energyValue as BigInteger
+    if (energyPrice == null)
+		energyPrice = 9.38 as float
     if (device.currentValue("energy") == null)
         sendEvent(name: "energy", value: 0, unit: "kWh")
-     
-    if (state.energyValue + state.offsetEnergy < device.currentValue("energy")*1000) { //Although energy are parse as BigInteger, sometimes (like 1 times per month during heating  time) the value received is lower than the precedent but not zero..., so we define a new offset when that happen
-        BigInteger newOffset = device.currentValue("energy")*1000 - state.energyValue as BigInteger
-        if (newOffset < 1e10) //Sometimes when the hub boot, the offset is very large... munch too large
-            state.offsetEnergy = newOffset
+    else {
+        if (state.energyValue + state.offsetEnergy < device.currentValue("energy")*1000) { //Although energy are parse as BigInteger, sometimes (like 1 times per month during heating  time) the value received is lower than the precedent but not zero..., so we define a new offset when that happen
+            BigInteger newOffset = device.currentValue("energy")*1000 - state.energyValue as BigInteger
+            if (newOffset < 1e10) //Sometimes when the hub boot, the offset is very large... munch too large
+                state.offsetEnergy = newOffset
+        }
     }
     
     float dailyEnergy = roundTwoPlaces((state.energyValue + state.offsetEnergy - state.dailyEnergy)/1000)
@@ -324,7 +333,9 @@ def energySecCalculation() { //This one is performed every hour to not overwhelm
        state.monthlyEnergy = state.energyValue as BigInteger
     if (state.yearlyEnergy == null)
        state.yearlyEnergy = state.energyValue as BigInteger
-    
+    if (energyPrice == null)
+		energyPrice = 9.38 as float
+            
     float weeklyEnergy = roundTwoPlaces((state.energyValue + state.offsetEnergy - state.weeklyEnergy)/1000)
     float monthlyEnergy = roundTwoPlaces((state.energyValue + state.offsetEnergy - state.monthlyEnergy)/1000)
     float yearlyEnergy = roundTwoPlaces((state.energyValue + state.offsetEnergy - state.yearlyEnergy)/1000)
