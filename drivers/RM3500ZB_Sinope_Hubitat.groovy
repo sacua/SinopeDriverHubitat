@@ -116,7 +116,7 @@ def parse(String description) {
     if (description?.startsWith("read attr -")) {
         result += createCustomMap(descMap)
         if(descMap.additionalAttrs){
-               def mapAdditionnalAttrs = descMap.additionalAttrs
+            def mapAdditionnalAttrs = descMap.additionalAttrs
             mapAdditionnalAttrs.each{add ->
                 add.cluster = descMap.cluster
                 result += createCustomMap(add)
@@ -140,24 +140,31 @@ private createCustomMap(descMap){
         map.name = "power"
         map.value = getActivePower(descMap.value)
         map.unit = "W"
+        map.descriptionText = "Current power is ${map.value} ${map.unit}"
 
     } else if (descMap.cluster == "0702" && descMap.attrId == "0000") {
         state.energyValue = getEnergy(descMap.value) as BigInteger
         runIn(2,"energyCalculation")
+        // not generating an event here ?
 
     } else if (descMap.cluster == "0402" && descMap.attrId == "0000") {
 		map.name = "temperature"
 		map.value = getTemperature(descMap.value)
+        map.unit = getTemperatureScale()
+        map.descriptionText = "Current water temperature is ${map.value} ${map.unit}"
 
     } else if (descMap.cluster == "0500" && descMap.attrId == "0002") {
         map.name = "water"
-        if (debugEnable) log.debug "water sensor change detected : " + descMap.value
+        if (debugEnable) log.debug "water sensor report : " + descMap.value
         map.value = getWaterStatus(descMap.value)
+        map.descriptionText = "Water sensor reports ${map.value}"
     }
 
     if (map) {
         def isChange = isStateChange(device, map.name, map.value.toString())
-        map.displayed = isChange
+        map.displayed = isChange       // not sure what this does
+        map.isStateChange = isChange   // see sendEvent() documentation
+        if (debugEnable) log.debug "event map : ${map}"
         result = createEvent(map)
     }
 
