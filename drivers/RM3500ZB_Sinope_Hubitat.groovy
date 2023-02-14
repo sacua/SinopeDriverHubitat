@@ -151,8 +151,8 @@ private createCustomMap(descMap){
         runIn(2,"energyCalculation")
 
     } else if (descMap.cluster == "0402" && descMap.attrId == "0000") {
-		map.name = "temperature"
-		map.value = getTemperature(descMap.value)
+        map.name = "temperature"
+        map.value = getTemperature(descMap.value)
         map.unit = getTemperatureScale()
         map.descriptionText = "Current water temperature is ${map.value} ${map.unit}"
 
