@@ -108,11 +108,12 @@ def uninstalled() {
 
 // parse events into attributes
 def parse(String description) {
-    if (debugEnable) log.debug "parse - description = ${description}"
     def result = []
-    def cluster = zigbee.parse(description)
+    def descMap = zigbee.parseDescriptionAsMap(description)
+
+    if (debugEnable) log.debug "parse - description = ${descMap}"
+
     if (description?.startsWith("read attr -")) {
-        def descMap = zigbee.parseDescriptionAsMap(description)
         result += createCustomMap(descMap)
         if(descMap.additionalAttrs){
                def mapAdditionnalAttrs = descMap.additionalAttrs
@@ -272,12 +273,14 @@ def refresh() {
 
 
 def off() {
+    log.debug "command switch OFF"
     def cmds = []
     cmds += zigbee.command(0x0006, 0x00)
     sendZigbeeCommands(cmds)
 }
 
 def on() {
+    log.debug "command switch ON"
     def cmds = []
     cmds += zigbee.command(0x0006, 0x01)
     sendZigbeeCommands(cmds)
