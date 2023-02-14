@@ -135,6 +135,9 @@ private createCustomMap(descMap){
         map.name = "switch"
         map.value = getSwitchStatus(descMap.value)
         //map.value = getSwitchMap()[descMap.value]   // Changed method so that we can use log.info since this device has a physical switch on the device
+        map.type = state.switchTypeDigital ? "digital" : "physical"
+        state.switchTypeDigital = false
+        map.descriptionText = "Water heater switch is ${map.value} [${map.type}]"
 
     } else if (descMap.cluster == "0B04" && descMap.attrId == "050B") {
         map.name = "power"
@@ -234,6 +237,8 @@ def configure(){
         schedule("0 0 0 ? * 7 *", resetWeeklyEnergy)
     }
 
+    state.switchTypeDigital = true
+
     // Prepare our zigbee commands
     def cmds = []
 
@@ -282,6 +287,7 @@ def refresh() {
 
 def off() {
     if (debugEnable) log.debug "command switch OFF"
+    state.switchTypeDigital = true
     def cmds = []
     cmds += zigbee.command(0x0006, 0x00)
     sendZigbeeCommands(cmds)
@@ -289,6 +295,7 @@ def off() {
 
 def on() {
     if (debugEnable) log.debug "command switch ON"
+    state.switchTypeDigital = true
     def cmds = []
     cmds += zigbee.command(0x0006, 0x01)
     sendZigbeeCommands(cmds)
