@@ -151,7 +151,7 @@ private createCustomMap(descMap){
             case "0505":
                 // RMSVoltage
                 map.name = "voltage"
-                map.value = descMap.value as DataType.UINT16
+                map.value = Integer.parseInt(descMap.value, 16)
                 map.unit = "V"
                 map.descriptionText = "Voltage is ${map.value} ${map.unit}"
                 break
@@ -159,7 +159,7 @@ private createCustomMap(descMap){
             case "0508":
                 // RMSCurrent
                 map.name = "current"
-                map.value = descMap.value as DataType.UINT16
+                map.value = Integer.parseInt(descMap.value, 16)
                 map.unit = "A"
                 map.descriptionText = "Current is ${map.value} ${map.unit}"
                 break
