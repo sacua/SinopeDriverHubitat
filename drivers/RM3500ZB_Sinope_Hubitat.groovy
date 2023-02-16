@@ -142,6 +142,7 @@ private createCustomMap(descMap){
     } else if (descMap.cluster == "0B04") {
         switch(descMap.attrId) {
             case "050B":
+                // ActivePower
                 map.name = "power"
                 map.value = getActivePower(descMap.value)
                 map.unit = "W"
@@ -186,14 +187,14 @@ private createCustomMap(descMap){
         map.descriptionText = "Water leak sensor reports ${map.value}"
 
     } else {
-        logDebug("Unhandled report - cluster ${descMap.cluster} attribute ${descMap.attrId} value ${descMap.value}")
+        logDebug("Unhandled attribute report - cluster ${descMap.cluster} attribute ${descMap.attrId} value ${descMap.value}")
     }
 
     if (map) {
         def isChange = isStateChange(device, map.name, map.value.toString())
         map.displayed = isChange         // not sure what this does as it's not a documented parameter for sendEvent()
         //map.isStateChange = isChange   // don't set, let default platform filtering happen.  See sendEvent() documentation
-        logDebug("event map : ${map}")
+        //logDebug("event map : ${map}")
         if (map.descriptionText) logInfo("${map.descriptionText}")
         result = createEvent(map)
     }
