@@ -578,6 +578,14 @@ private getRMSCurrent(attributeReportValue) {
         return Integer.parseInt(attributeReportValue, 16) / 1000
 }
 
+private getEnergy(value) {
+  if (value != null)
+  {
+    BigInteger EnergySum = new BigInteger(value,16)
+    return EnergySum
+  }
+}
+
 private roundTwoPlaces(val)
 {
   return Math.round(val * 100) / 100
@@ -587,18 +595,6 @@ private hex(value)
 {
   String hex = new BigInteger(Math.round(value).toString()).toString(16)
   return hex
-}
-
-private getEnergy(value) {
-  if (value != null)
-  {
-    BigInteger EnergySum = new BigInteger(value,16)
-    return EnergySum
-  }
-}
-
-private getTemperatureScale() {
-	return "${location.temperatureScale}"
 }
 
 private logInfo(message) {
