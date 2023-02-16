@@ -194,7 +194,7 @@ private createCustomMap(descMap){
         def isChange = isStateChange(device, map.name, map.value.toString())
         map.displayed = isChange         // not sure what this does as it's not a documented parameter for sendEvent()
         //map.isStateChange = isChange   // don't set, let default platform filtering happen.  See sendEvent() documentation
-        //logDebug("event map : ${map}")
+        logDebug("event map : ${map}")
         if (map.descriptionText) logInfo("${map.descriptionText}")
         result = createEvent(map)
     }
