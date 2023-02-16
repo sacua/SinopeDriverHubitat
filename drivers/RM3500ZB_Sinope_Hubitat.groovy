@@ -139,11 +139,34 @@ private createCustomMap(descMap){
         state.switchTypeDigital = false
         map.descriptionText = "Water heater switch is ${map.value} [${map.type}]"
 
-    } else if (descMap.cluster == "0B04" && descMap.attrId == "050B") {
-        map.name = "power"
-        map.value = getActivePower(descMap.value)
-        map.unit = "W"
-        map.descriptionText = "Current power is ${map.value} ${map.unit}"
+    } else if (descMap.cluster == "0B04") {
+        switch(descMap.attrId) {
+            case "050B":
+                map.name = "power"
+                map.value = getActivePower(descMap.value)
+                map.unit = "W"
+                map.descriptionText = "Power is ${map.value} ${map.unit}"
+                break
+
+            case "0505":
+                // RMSVoltage
+                map.name = "voltage"
+                map.value = descMap.value as DataType.UINT16
+                map.unit = "V"
+                map.descriptionText = "Voltage is ${map.value} ${map.unit}"
+                break
+
+            case "0508":
+                // RMSCurrent
+                map.name = "current"
+                map.value = descMap.value as DataType.UINT16
+                map.unit = "A"
+                map.descriptionText = "Current is ${map.value} ${map.unit}"
+                break
+
+            default:
+                logDebug("unhandled report - cluster ${descMap.cluster} attribute ${descMap.attrId} value ${descMap.value}")
+                break
 
     } else if (descMap.cluster == "0702" && descMap.attrId == "0000") {
         // energy event will be sent from energyCalculation()
@@ -154,16 +177,16 @@ private createCustomMap(descMap){
         map.name = "temperature"
         map.value = getTemperature(descMap.value)
         map.unit = getTemperatureScale()
-        map.descriptionText = "Current water temperature is ${map.value} ${map.unit}"
+        map.descriptionText = "Water temperature is ${map.value} ${map.unit}"
 
     } else if (descMap.cluster == "0500" && descMap.attrId == "0002") {
         logDebug("water sensor report : " + descMap.value)
         map.name = "water"
         map.value = getWaterStatus(descMap.value)
-        map.descriptionText = "Water sensor reports ${map.value}"
+        map.descriptionText = "Water leak sensor reports ${map.value}"
 
     } else {
-        logDebug("unhandled report - cluster ${descMap.cluster} attribute ${descMap.attrId} value ${descMap.value}")
+        logDebug("Unhandled report - cluster ${descMap.cluster} attribute ${descMap.attrId} value ${descMap.value}")
     }
 
     if (map) {
@@ -281,7 +304,7 @@ def refresh() {
     cmds += zigbee.readAttribute(0x0500, 0x0002) //Read Water leak
     cmds += zigbee.readAttribute(0xFF01, 0x0076) //Read state of water temp safety setting (45 or 0)
     cmds += zigbee.readAttribute(0x0006, 0x0000) //Read On off state
-    cmds += zigbee.readAttribute(0x0B04, 0x050B)  //Read thermostat Active power
+    cmds += zigbee.readAttribute(0x0B04, 0x050B) //Read thermostat Active power
     cmds += zigbee.readAttribute(0x0702, 0x0000) //Read energy delivered
 
     if (cmds)
