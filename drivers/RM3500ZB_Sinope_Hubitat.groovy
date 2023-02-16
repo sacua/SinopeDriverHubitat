@@ -100,7 +100,7 @@ def uninstalled() {
     try {
         unschedule()
     } catch (errMsg) {
-        logInfo("uninstalled() - Error unschedule() - ${errMsg}")
+        log.error "${device} : uninstalled() - unschedule() threw an exception : ${errMsg}"
     }
 }
 
@@ -134,7 +134,7 @@ private createCustomMap(descMap){
 
     if (descMap.cluster == "0006" && descMap.attrId == "0000") {
         map.name = "switch"
-        map.value = getSwitchMap()[descMap.value]
+        map.value = getSwitchStatus(descMap.value)
         map.type = state.switchTypeDigital ? "digital" : "physical"
         state.switchTypeDigital = false
         map.descriptionText = "Water heater switch is ${map.value} [${map.type}]"
@@ -457,11 +457,15 @@ private getWaterStatus(value) {
     }
 }
 
-private getSwitchMap() {
-  [
-    "00": "off",
-    "01": "on",
-  ]
+private getSwitchStatus(value) {
+    switch(value) {
+        case "00" :
+            return "off"
+            break
+        case "01" :
+            return "on"
+            break
+    }
 }
 
 private getActivePower(value) {
