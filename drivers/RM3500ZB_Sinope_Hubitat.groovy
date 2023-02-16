@@ -167,7 +167,7 @@ private createCustomMap(descMap){
             default:
                 logDebug("unhandled report - cluster ${descMap.cluster} attribute ${descMap.attrId} value ${descMap.value}")
                 break
-
+        }
     } else if (descMap.cluster == "0702" && descMap.attrId == "0000") {
         // energy event will be sent from energyCalculation()
         state.energyValue = getEnergy(descMap.value) as BigInteger
