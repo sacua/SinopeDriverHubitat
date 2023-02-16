@@ -64,7 +64,7 @@ metadata
 //-- Installation ----------------------------------------------------------------------------------------
 
 def installed() {
-    if (infoEnable) log.info "installed() : running configure()"
+    logInfo("installed() - running configure()")
     if (state.time == null)
       state.time = now()
     if (state.energyValue == null)
@@ -77,7 +77,7 @@ def installed() {
 }
 
 def updated() {
-    if (infoEnable) log.info "updated() : running configure()"
+    logInfo("updated() - running configure()")
 
     if (state.time == null)
       state.time = now()
@@ -96,11 +96,11 @@ def updated() {
 }
 
 def uninstalled() {
-    if (infoEnable) log.info "uninstalled() : unscheduling configure() and reset()"
+    logInfo("uninstalled() - unscheduling configure() and reset()")
     try {
         unschedule()
     } catch (errMsg) {
-        log.info "uninstalled(): Error unschedule() - ${errMsg}"
+        logInfo("uninstalled() - Error unschedule() - ${errMsg}")
     }
 }
 
@@ -112,7 +112,7 @@ def parse(String description) {
     def result = []
     def descMap = zigbee.parseDescriptionAsMap(description)
 
-    if (debugEnable) log.debug "parse - description = ${descMap}"
+    logDebug("parse - description = ${descMap}")
 
     if (description?.startsWith("read attr -")) {
         result += createCustomMap(descMap)
@@ -134,8 +134,7 @@ private createCustomMap(descMap){
 
     if (descMap.cluster == "0006" && descMap.attrId == "0000") {
         map.name = "switch"
-        map.value = getSwitchStatus(descMap.value)
-        //map.value = getSwitchMap()[descMap.value]   // Changed method so that we can use log.info since this device has a physical switch on the device
+        map.value = getSwitchMap()[descMap.value]
         map.type = state.switchTypeDigital ? "digital" : "physical"
         state.switchTypeDigital = false
         map.descriptionText = "Water heater switch is ${map.value} [${map.type}]"
@@ -158,8 +157,8 @@ private createCustomMap(descMap){
         map.descriptionText = "Current water temperature is ${map.value} ${map.unit}"
 
     } else if (descMap.cluster == "0500" && descMap.attrId == "0002") {
+        logDebug("water sensor report : " + descMap.value)
         map.name = "water"
-        if (debugEnable) log.debug "water sensor report : " + descMap.value
         map.value = getWaterStatus(descMap.value)
         map.descriptionText = "Water sensor reports ${map.value}"
     }
@@ -168,7 +167,8 @@ private createCustomMap(descMap){
         def isChange = isStateChange(device, map.name, map.value.toString())
         map.displayed = isChange         // not sure what this does as it's not a documented parameter for sendEvent()
         //map.isStateChange = isChange   // don't set, let default platform filtering happen.  See sendEvent() documentation
-        if (debugEnable) log.debug "event map : ${map}"
+        logDebug("event map : ${map}")
+        if (map.descriptionText) logInfo("${map.descriptionText}")
         result = createEvent(map)
     }
 
@@ -178,7 +178,7 @@ private createCustomMap(descMap){
 //-- Capabilities -----------------------------------------------------------------------------------------
 
 def configure(){
-    if (infoEnable) log.info "configure()"
+    logInfo("configure()")
     try
     {
         unschedule()
@@ -271,7 +271,7 @@ def configure(){
 }
 
 def refresh() {
-    if (infoEnable) log.info "refresh()"
+    logInfo("refresh()")
 
     def cmds = []
     cmds += zigbee.readAttribute(0x0402, 0x0000) //Read Local Temperature
@@ -287,7 +287,7 @@ def refresh() {
 
 
 def off() {
-    if (debugEnable) log.debug "command switch OFF"
+    logDebug("command switch OFF")
     state.switchTypeDigital = true
     def cmds = []
     cmds += zigbee.command(0x0006, 0x00)
@@ -295,7 +295,7 @@ def off() {
 }
 
 def on() {
-    if (debugEnable) log.debug "command switch ON"
+    logDebug("command switch ON")
     state.switchTypeDigital = true
     def cmds = []
     cmds += zigbee.command(0x0006, 0x01)
@@ -449,25 +449,10 @@ private getTemperature(value) {
 private getWaterStatus(value) {
     switch(value) {
         case "0030" :
-            if (infoEnable) log.info "Water sensor is dry"
             return "dry"
             break
         case "0031" :
-            if (infoEnable) log.info "Water sensor is wet"
             return "wet"
-            break
-    }
-}
-
-private getSwitchStatus(value) {
-    switch(value) {
-        case "00" :
-            if (infoEnable) log.info "Switch is off"
-            return "off"
-            break
-        case "01" :
-            if (infoEnable) log.info "Switch is on"
-            return "on"
             break
     }
 }
@@ -509,4 +494,12 @@ private getEnergy(value) {
 
 private getTemperatureScale() {
 	return "${location.temperatureScale}"
+}
+
+private logInfo(message) {
+    if (infoEnable) log.info("${device} : ${message}")
+}
+
+private logDebug(message) {
+    if (debugEnable) log.debug("${device} : ${message}")
 }
