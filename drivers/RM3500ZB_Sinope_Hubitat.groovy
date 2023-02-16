@@ -563,16 +563,19 @@ private getSwitchStatus(value) {
 }
 
 private getActivePower(attributeReportValue) {
-    return Integer.parseInt(attributeReportValue, 16)
+    if (attributeReportValue != null)
+        return Integer.parseInt(attributeReportValue, 16)
 }
 
 private getRMSVoltage(attributeReportValue) {
-    return Integer.parseInt(attributeReportValue, 16)
+    if (attributeReportValue != null)
+        return Integer.parseInt(attributeReportValue, 16)
 }
 
 private getRMSCurrent(attributeReportValue) {
     // attribute report is in mA
-    return Integer.parseInt(attributeReportValue, 16) / 1000
+    if (attributeReportValue != null)
+        return Integer.parseInt(attributeReportValue, 16) / 1000
 }
 
 private roundTwoPlaces(val)
