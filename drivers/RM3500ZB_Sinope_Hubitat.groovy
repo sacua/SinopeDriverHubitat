@@ -160,7 +160,7 @@ private createCustomMap(descMap){
             case "0508":
                 // RMSCurrent
                 map.name = "current"
-                map.value = Integer.parseInt(descMap.value, 16)
+                map.value = Integer.parseInt(descMap.value, 16) / 1000 // attribute report is in mA
                 map.unit = "A"
                 map.descriptionText = "Current is ${map.value} ${map.unit}"
                 break
