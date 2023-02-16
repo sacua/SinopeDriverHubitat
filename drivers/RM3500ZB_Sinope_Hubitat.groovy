@@ -28,6 +28,7 @@ metadata
         capability "TemperatureMeasurement"
         capability "WaterSensor"
 
+        attribute "safetyWaterTemp", "boolean"
         attribute "cost", "number"
         attribute "dailyCost", "number"
         attribute "weeklyCost", "number"
@@ -43,6 +44,8 @@ metadata
         command "resetWeeklyEnergy"
         command "resetMonthlyEnergy"
         command "resetYearlyEnergy"
+        command "enableSafetyWaterTemp"
+        command "disableSafetyWaterTemp"
 
 	    fingerprint inClusters: "0000,0002,0003,0004,0005,0006,0402,0500,0702,0B04,0B05,FF01", outClusters: "000A,0019", manufacturer: "Sinope Technologies", model: "RM3500ZB", deviceJoinName: "Sinope Calypso Smart Water Heater Controller"
     }
@@ -54,7 +57,9 @@ metadata
         input name: "energyPrice", type: "float", title: "c/kWh Cost:", description: "Electric Cost per Kwh in cent", range: "0..*", defaultValue: 9.38
         input name: "weeklyReset", type: "enum", title: "Weekly reset day", description: "Day on which the weekly energy meter return to 0", options:["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"], defaultValue: "Sunday", multiple: false, required: true
         input name: "yearlyReset", type: "enum", title: "Yearly reset month", description: "Month on which the yearly energy meter return to 0", options:["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"], defaultValue: "January", multiple: false, required: true
-        //input name: "prefWaterTempMin", type: "bool", title: "Enable safety minimum water temperature 45°C/113°F feature", defaultValue: true
+        input name: "switchReportingSeconds", type: "enum", title: "Switch status reporting", description: "Maximum time to report switch status even if no change", options:[0: "never", 60: "1 minute", 600:"10 minutes", 3600:"1 hour", 21600:"6 hours", 43200:"12 hours", 86400:"24 hours"], defaultValue: "0", multiple: false, reqired: true
+        input name: "waterReportingSeconds", type: "enum", title: "Water status reporting", description: "Maximum time to report water status even if no change", options:[0: "never", 60: "1 minute", 600:"10 minutes", 3600:"1 hour", 21600:"6 hours", 43200:"12 hours", 86400:"24 hours"], defaultValue: "0", multiple: false, reqired: true
+        input name: "prefSafetyWaterTemp", type: "bool", title: "Enable safety minimum water temperature feature (45°C/113°F)", defaultValue: true
         input name: "infoEnable", type: "bool", title: "Enable descriptionText logging", defaultValue: true
         input name: "debugEnable", type: "bool", title: "Enable debug logging", defaultValue: true
     }
@@ -100,7 +105,7 @@ def uninstalled() {
     try {
         unschedule()
     } catch (errMsg) {
-        log.info "uninstalled(): Error unschedule() - ${errMsg}"
+        log.error "uninstalled(): Error unschedule() - ${errMsg}"
     }
 }
 
@@ -135,7 +140,6 @@ private createCustomMap(descMap){
     if (descMap.cluster == "0006" && descMap.attrId == "0000") {
         map.name = "switch"
         map.value = getSwitchStatus(descMap.value)
-        //map.value = getSwitchMap()[descMap.value]   // Changed method so that we can use log.info since this device has a physical switch on the device
         map.type = state.switchTypeDigital ? "digital" : "physical"
         state.switchTypeDigital = false
         map.descriptionText = "Water heater switch is ${map.value} [${map.type}]"
@@ -162,6 +166,11 @@ private createCustomMap(descMap){
         if (debugEnable) log.debug "water sensor report : " + descMap.value
         map.value = getWaterStatus(descMap.value)
         map.descriptionText = "Water sensor reports ${map.value}"
+    } else if (descMap.cluster == "FF01" && descMap.attrId == "0076") {
+        map.name = "safetyWaterTemp"
+        if (debugEnable) log.debug "safety water temperature report : " + descMap.value
+        map.value = getSafetyWaterTemperature(descMap.value)
+        map.descriptionText = "Safety water temperature reports ${map.value}"
     }
 
     if (map) {
@@ -191,51 +200,72 @@ def configure(){
     schedule("0 0 0 * * ? *", resetDailyEnergy)
     schedule("0 0 0 1 * ? *", resetMonthlyEnergy)
 
-     if (weeklyReset == null)
-		weeklyReset = "Sunday" as String
+    if (weeklyReset == null)
+        weeklyReset = "Sunday" as String
     if (yearlyReset == null)
-		yearlyReset = "January" as String
+        yearlyReset = "January" as String
 
-    if (yearlyReset == "January") {
-        schedule("0 0 0 1 1 ? *", resetYearlyEnergy)
-    } else if (yearlyReset == "February") {
-        schedule("0 0 0 1 2 ? *", resetYearlyEnergy)
-    } else if (yearlyReset == "March") {
-        schedule("0 0 0 1 3 ? *", resetYearlyEnergy)
-    } else if (yearlyReset == "April") {
-        schedule("0 0 0 1 4 ? *", resetYearlyEnergy)
-    } else if (yearlyReset == "May") {
-        schedule("0 0 0 1 5 ? *", resetYearlyEnergy)
-    } else if (yearlyReset == "February") {
-        schedule("0 0 0 1 6 ? *", resetYearlyEnergy)
-    } else if (yearlyReset == "February") {
-        schedule("0 0 0 1 7 ? *", resetYearlyEnergy)
-    } else if (yearlyReset == "February") {
-        schedule("0 0 0 1 8 ? *", resetYearlyEnergy)
-    } else if (yearlyReset == "February") {
-        schedule("0 0 0 1 9 ? *", resetYearlyEnergy)
-    } else if (yearlyReset == "February") {
-        schedule("0 0 0 1 10 ? *", resetYearlyEnergy)
-    } else if (yearlyReset == "February") {
-        schedule("0 0 0 1 11 ? *", resetYearlyEnergy)
-    } else if (yearlyReset == "February") {
-        schedule("0 0 0 1 12 ? *", resetYearlyEnergy)
+    switch (yearlyReset) {
+        case "January" :
+            schedule("0 0 0 1 1 ? *", resetYearlyEnergy)
+            break
+        case "February" :
+            schedule("0 0 0 1 2 ? *", resetYearlyEnergy)
+            break
+        case "March" :
+            schedule("0 0 0 1 3 ? *", resetYearlyEnergy)
+            break
+        case "April" :
+            schedule("0 0 0 1 4 ? *", resetYearlyEnergy)
+            break
+        case "May" :
+            schedule("0 0 0 1 5 ? *", resetYearlyEnergy)
+            break
+        case "June" :
+            schedule("0 0 0 1 6 ? *", resetYearlyEnergy)
+            break
+        case "July" :
+            schedule("0 0 0 1 7 ? *", resetYearlyEnergy)
+            break
+        case "August" :
+            schedule("0 0 0 1 8 ? *", resetYearlyEnergy)
+            break
+        case "September" :
+            schedule("0 0 0 1 9 ? *", resetYearlyEnergy)
+            break
+        case "October" :
+            schedule("0 0 0 1 10 ? *", resetYearlyEnergy)
+            break
+        case "November" :
+            schedule("0 0 0 1 11 ? *", resetYearlyEnergy)
+            break
+        case "December" :
+            schedule("0 0 0 1 12 ? *", resetYearlyEnergy)
+            break
     }
 
-    if (weeklyReset == "Sunday") {
-        schedule("0 0 0 ? * 1 *", resetWeeklyEnergy)
-    } else if (weeklyReset == "Monday") {
-        schedule("0 0 0 ? * 2 *", resetWeeklyEnergy)
-    } else if (weeklyReset == "Tuesday") {
-        schedule("0 0 0 ? * 3 *", resetWeeklyEnergy)
-    } else if (weeklyReset == "Wednesday") {
-        schedule("0 0 0 ? * 4 *", resetWeeklyEnergy)
-    } else if (weeklyReset == "Thursday") {
-        schedule("0 0 0 ? * 5 *", resetWeeklyEnergy)
-    } else if (weeklyReset == "Friday") {
-        schedule("0 0 0 ? * 6 *", resetWeeklyEnergy)
-    } else if (weeklyReset == "Saturday") {
-        schedule("0 0 0 ? * 7 *", resetWeeklyEnergy)
+    switch (weeklyReset) {
+        case "Sunday" :
+            schedule("0 0 0 ? * 1 *", resetWeeklyEnergy)
+            break
+        case "Monday" :
+            schedule("0 0 0 ? * 2 *", resetWeeklyEnergy)
+            break
+        case "Tuesday" :
+            schedule("0 0 0 ? * 3 *", resetWeeklyEnergy)
+            break
+        case "Wednesday" :
+            schedule("0 0 0 ? * 4 *", resetWeeklyEnergy)
+            break
+        case "Thursday" :
+            schedule("0 0 0 ? * 5 *", resetWeeklyEnergy)
+            break
+        case "Friday" :
+            schedule("0 0 0 ? * 6 *", resetWeeklyEnergy)
+            break
+        case "Saturday" :
+            schedule("0 0 0 ? * 7 *", resetWeeklyEnergy)
+            break
     }
 
     state.switchTypeDigital = true
@@ -243,26 +273,35 @@ def configure(){
     // Prepare our zigbee commands
     def cmds = []
 
-    // Configure Reporting
+    // Configure Default values if null
     if (tempChange == null)
-		tempChange = 100 as int
+        tempChange = 100 as int
     if (powerReport == null)
-		powerReport = 30 as int
+        powerReport = 30 as int
 	if (energyChange == null)
-		energyChange = 10 as int
-
+        energyChange = 10 as int
+    if (waterReportingSeconds == null)
+        waterReportingSeconds = "0"
+    if (switchReportingSeconds == null)
+        switchReportingSeconds = "0"
+    if (prefSafetyWaterTemp == null)
+        prefSafetyWaterTemp = true
+    
     cmds += zigbee.configureReporting(0x0402, 0x0000, 0x29, 30, 580, (int) tempChange)  //local temperature
-    cmds += zigbee.configureReporting(0x0500, 0x0002, DataType.BITMAP16, 0, 600, null)
-    cmds += zigbee.configureReporting(0x0006, 0x0000, 0x10, 0, 600, null)           //On off state
-    cmds += zigbee.configureReporting(0x0B04, 0x050B, 0x29, 30, 600, (int) powerReport)
-    cmds += zigbee.configureReporting(0x0702, 0x0000, DataType.UINT48, 299, 1799, (int) energyChange) //Energy reading
-
-	// Configure Water Temp Min
-	if (prefWaterTempMin) {
-		cmds += zigbee.writeAttribute(0xFF01, 0x0076, 0x21, 45)  //set water temp min to 45 (only acceptable value)
-	} else {
-		cmds += zigbee.writeAttribute(0xFF01, 0x0076, 0x21, 0)  //set water temp min to 0 (disabled)
-	}
+    cmds += zigbee.configureReporting(0x0500, 0x0002, DataType.BITMAP16, 0, Integer.parseInt(waterReportingSeconds), null)  //water state
+    cmds += zigbee.configureReporting(0x0006, 0x0000, 0x10, 0, Integer.parseInt(switchReportingSeconds), null)  //On off state
+    cmds += zigbee.configureReporting(0x0B04, 0x050B, 0x29, 30, 600, (int) powerReport)  //Active power reporting
+    cmds += zigbee.configureReporting(0x0702, 0x0000, DataType.UINT48, 299, 1799, (int) energyChange)  //Energy reading
+    cmds += zigbee.configureReporting(0xFF01, 0x0076, DataType.UINT8, 0, 86400, null, [mfgCode: "0x119C"])  //Safety water temp reporting every 24 hours
+    
+    // Configure Safety Water Temp 
+    if (!prefSafetyWaterTemp) {
+//        log.warn "Water temperature safety is off, water temperature can go below 45°C / 113°F without turning back on by itself"
+        cmds += zigbee.writeAttribute(0xFF01, 0x0076, DataType.UINT8, 0, [mfgCode: "0x119C"])  //set water temp min to 0 (disabled)
+    } else {
+//        if (infoEnable) log.info "Water temperature safety is on"
+        cmds += zigbee.writeAttribute(0xFF01, 0x0076, DataType.UINT8, 45, [mfgCode: "0x119C"])  //set water temp min to 45 (only acceptable value)
+    }
 
 
     if (cmds)
@@ -270,13 +309,14 @@ def configure(){
     return
 }
 
+
 def refresh() {
     if (infoEnable) log.info "refresh()"
 
     def cmds = []
     cmds += zigbee.readAttribute(0x0402, 0x0000) //Read Local Temperature
     cmds += zigbee.readAttribute(0x0500, 0x0002) //Read Water leak
-    cmds += zigbee.readAttribute(0xFF01, 0x0076) //Read state of water temp safety setting (45 or 0)
+    cmds += zigbee.readAttribute(0xFF01, 0x0076, [mfgCode: "0x119C"]) //Read state of water temp safety setting (45 or 0)
     cmds += zigbee.readAttribute(0x0006, 0x0000) //Read On off state
     cmds += zigbee.readAttribute(0x0B04, 0x050B)  //Read thermostat Active power
     cmds += zigbee.readAttribute(0x0702, 0x0000) //Read energy delivered
@@ -284,7 +324,6 @@ def refresh() {
     if (cmds)
         sendZigbeeCommands(cmds) // Submit zigbee commands
 }
-
 
 def off() {
     if (debugEnable) log.debug "command switch OFF"
@@ -299,6 +338,18 @@ def on() {
     state.switchTypeDigital = true
     def cmds = []
     cmds += zigbee.command(0x0006, 0x01)
+    sendZigbeeCommands(cmds)
+}
+
+def enableSafetyWaterTemp() {
+    def cmds = []
+    cmds += zigbee.writeAttribute(0xFF01, 0x0076, DataType.UINT8, 45, [mfgCode: "0x119C"])
+    sendZigbeeCommands(cmds)
+}
+
+def disableSafetyWaterTemp() {
+    def cmds = []
+    cmds += zigbee.writeAttribute(0xFF01, 0x0076, DataType.UINT8, 0, [mfgCode: "0x119C"])
     sendZigbeeCommands(cmds)
 }
 
@@ -446,6 +497,21 @@ private getTemperature(value) {
 	}
 }
 
+private getSafetyWaterTemperature(value) {
+    switch(value) {
+        case "2D" :
+            if (infoEnable) log.info "Safety water temperature is enabled"
+            device.updateSetting("prefSafetyWaterTemp",true)
+            return "true"
+            break
+        case "00" :
+            log.warn "Safety water temperature is disabled, water temperature can go below 45°C / 113°F without turning back on by itself"
+            device.updateSetting("prefSafetyWaterTemp",false)
+            return "false"
+            break
+    }
+}
+
 private getWaterStatus(value) {
     switch(value) {
         case "0030" :
@@ -470,13 +536,6 @@ private getSwitchStatus(value) {
             return "on"
             break
     }
-}
-
-private getSwitchMap() {
-  [
-    "00": "off",
-    "01": "on",
-  ]
 }
 
 private getActivePower(value) {
