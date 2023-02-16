@@ -161,6 +161,9 @@ private createCustomMap(descMap){
         map.name = "water"
         map.value = getWaterStatus(descMap.value)
         map.descriptionText = "Water sensor reports ${map.value}"
+
+    } else {
+        logDebug("unhandled report - cluster ${descMap.cluster} attribute ${descMap.attrId} value ${descMap.value}")
     }
 
     if (map) {
