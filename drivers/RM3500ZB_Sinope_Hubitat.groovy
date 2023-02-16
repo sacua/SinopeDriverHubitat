@@ -327,7 +327,7 @@ def configure(){
 //        log.warn "Water temperature safety is off, water temperature can go below 45°C / 113°F without turning back on by itself"
         cmds += zigbee.writeAttribute(0xFF01, 0x0076, DataType.UINT8, 0, [mfgCode: "0x119C"])  //set water temp min to 0 (disabled)
     } else {
-//        if (infoEnable) log.info "Water temperature safety is on"
+//        logInfo("Water temperature safety is on")
         cmds += zigbee.writeAttribute(0xFF01, 0x0076, DataType.UINT8, 45, [mfgCode: "0x119C"])  //set water temp min to 45 (only acceptable value)
     }
 
@@ -528,7 +528,7 @@ private getTemperature(value) {
 private getSafetyWaterTemperature(value) {
     switch(value) {
         case "2D" :
-            if (infoEnable) log.info "Safety water temperature is enabled"
+            logInfo("Safety water temperature is enabled")
             device.updateSetting("prefSafetyWaterTemp",true)
             return "true"
             break
