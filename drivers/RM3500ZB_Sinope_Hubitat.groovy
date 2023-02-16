@@ -152,7 +152,7 @@ private createCustomMap(descMap){
             case "0505":
                 // RMSVoltage
                 map.name = "voltage"
-                map.value = Integer.parseInt(descMap.value, 16)
+                map.value = getRMSVoltage(descMap.value)
                 map.unit = "V"
                 map.descriptionText = "Voltage is ${map.value} ${map.unit}"
                 break
@@ -160,13 +160,13 @@ private createCustomMap(descMap){
             case "0508":
                 // RMSCurrent
                 map.name = "current"
-                map.value = Integer.parseInt(descMap.value, 16) / 1000 // attribute report is in mA
+                map.value = getRMSCurrent(descMap.value)
                 map.unit = "A"
                 map.descriptionText = "Current is ${map.value} ${map.unit}"
                 break
 
             default:
-                logDebug("unhandled report - cluster ${descMap.cluster} attribute ${descMap.attrId} value ${descMap.value}")
+                logDebug("unhandled electrical measurement attribute report - cluster ${descMap.cluster} attribute ${descMap.attrId} value ${descMap.value}")
                 break
         }
     } else if (descMap.cluster == "0702" && descMap.attrId == "0000") {
@@ -495,14 +495,18 @@ private getSwitchStatus(value) {
     }
 }
 
-private getActivePower(value) {
-  if (value != null)
-  {
-    def activePower = Integer.parseInt(value, 16)
-    return activePower
-  }
+private getActivePower(attributeReportValue) {
+    return Integer.parseInt(attributeReportValue, 16)
 }
 
+private getRMSVoltage(attributeReportValue) {
+    return Integer.parseInt(attributeReportValue, 16)
+}
+
+private getRMSCurrent(attributeReportValue) {
+    // attribute report is in mA
+    return Integer.parseInt(attributeReportValue, 16) / 1000
+}
 
 private roundTwoPlaces(val)
 {
