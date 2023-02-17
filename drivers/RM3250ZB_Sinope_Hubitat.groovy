@@ -47,12 +47,13 @@ metadata
         command "resetYearlyEnergy"
 
         preferences {
-          input name: "powerReport", type: "number", title: "Power change", description: "Amount of wattage difference to trigger power report (1..*)",  range: "1..*", defaultValue: 30
-          input name: "energyChange", type: "number", title: "Energy increment", description: "Minimum increment of the energy meter in Wh to trigger energy reporting (10..*)", range: "10..*", defaultValue: 10
-          input name: "energyPrice", type: "float", title: "c/kWh Cost:", description: "Electric Cost per Kwh in cent", range: "0..*", defaultValue: 9.38
-          input name: "weeklyReset", type: "enum", title: "Weekly reset day", description: "Day on which the weekly energy meter return to 0", options:["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"], defaultValue: "Sunday", multiple: false, required: true
-          input name: "yearlyReset", type: "enum", title: "Yearly reset month", description: "Month on which the yearly energy meter return to 0", options:["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"], defaultValue: "January", multiple: false, required: true
-          input name: "txtEnable", type: "bool", title: "Enable logging info", defaultValue: true
+            input name: "powerReport", type: "number", title: "Power change", description: "Amount of wattage difference to trigger power report (1..*)",  range: "1..*", defaultValue: 30
+            input name: "energyChange", type: "number", title: "Energy increment", description: "Minimum increment of the energy meter in Wh to trigger energy reporting (10..*)", range: "10..*", defaultValue: 10
+            input name: "energyPrice", type: "float", title: "c/kWh Cost:", description: "Electric Cost per Kwh in cent", range: "0..*", defaultValue: 9.38
+            input name: "weeklyReset", type: "enum", title: "Weekly reset day", description: "Day on which the weekly energy meter return to 0", options:["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"], defaultValue: "Sunday", multiple: false, required: true
+            input name: "yearlyReset", type: "enum", title: "Yearly reset month", description: "Month on which the yearly energy meter return to 0", options:["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"], defaultValue: "January", multiple: false, required: true
+            input name: "txtEnable", type: "bool", title: "Enable description text logging", defaultValue: true
+            input name: "debugEnable", type: "bool", title: "Enable debug logging", defaultValue: false
         }
 
         fingerprint profileId:"0104", inClusters:"0000,0002,0003,0004,0005,0006,0702,0B04,0B05,FF01", outClusters:"0003,0004,0019", model:"RM3250ZB", manufacturer:"Sinope Technologies", deviceJoinName: "Sinope Load Controller"
@@ -63,7 +64,7 @@ metadata
 //-- Installation ----------------------------------------------------------------------------------------
 
 def installed() {
-    if (txtEnable) log.info "installed() : running configure()"
+    logDebug("installed() - running configure()")
     if (state.time == null)
       state.time = now()
     if (state.energyValue == null)
@@ -76,7 +77,7 @@ def installed() {
 }
 
 def updated() {
-    if (txtEnable) log.info "updated() : running configure()"
+    logDebug("updated() - running configure()")
 
     if (state.time == null)
       state.time = now()
@@ -95,11 +96,11 @@ def updated() {
 }
 
 def uninstalled() {
-    if (txtEnable) log.info "uninstalled() : unscheduling configure() and reset()"
+    logDebug("uninstalled() - unscheduling configure() and reset()")
     try {
         unschedule()
     } catch (errMsg) {
-        log.info "uninstalled(): Error unschedule() - ${errMsg}"
+        log.error "${device} : uninstalled() - Error unschedule() - ${errMsg}"
     }
 }
 
@@ -108,12 +109,12 @@ def uninstalled() {
 
 // parse events into attributes
 def parse(String description) {
-    if (txtEnable) log.debug "parse - description = ${description}"
     def result = []
-    def cluster = zigbee.parse(description)
+    def descMap = zigbee.parseDescriptionAsMap(description)
+
+    logDebug("parse - description = ${descMap}")
+
     if (description?.startsWith("read attr -")) {
-        // log.info description
-        def descMap = zigbee.parseDescriptionAsMap(description)
         result += createCustomMap(descMap)
         if(descMap.additionalAttrs) {
             def mapAdditionnalAttrs = descMap.additionalAttrs
@@ -164,7 +165,7 @@ private createCustomMap(descMap){
                 break
 
             default:
-                if (txtEnable) log.debug "unhandled electrical measurement attribute report - cluster ${descMap.cluster} attribute ${descMap.attrId} value ${descMap.value}"
+                logDebug("unhandled electrical measurement attribute report - cluster ${descMap.cluster} attribute ${descMap.attrId} value ${descMap.value}")
                 break
         }
     } else if (descMap.cluster == "0702" && descMap.attrId == "0000") {
@@ -172,14 +173,14 @@ private createCustomMap(descMap){
         runIn(2,"energyCalculation")
 
     } else {
-        if (txtEnable) log.debug("Unhandled attribute report - cluster ${descMap.cluster} attribute ${descMap.attrId} value ${descMap.value}")
+        logDebug("Unhandled attribute report - cluster ${descMap.cluster} attribute ${descMap.attrId} value ${descMap.value}")
     }
 
     if (map) {
         def isChange = isStateChange(device, map.name, map.value.toString())
         map.displayed = isChange
-        //log.debug "event map : ${map}"
-        if (map.descriptionText && txtEnable) log.info "${map.descriptionText}"
+        logDebug("event map : ${map}")
+        if (map.descriptionText) logInfo("${map.descriptionText}")
         result = createEvent(map)
     }
     return result
@@ -188,7 +189,7 @@ private createCustomMap(descMap){
 //-- Capabilities -----------------------------------------------------------------------------------------
 
 def configure(){
-    if (txtEnable) log.info "configure()"
+    logDebug("configure()")
     try
     {
         unschedule()
@@ -266,7 +267,7 @@ l        schedule("0 0 0 ? * 7 *", resetWeeklyEnergy)
 }
 
 def refresh() {
-    if (txtEnable) log.info "refresh()"
+    logDebug("refresh()")
 
     def cmds = []
     cmds += zigbee.readAttribute(0x0006, 0x0000) //Read on/off state
@@ -457,4 +458,12 @@ private hex(value)
 {
   String hex = new BigInteger(Math.round(value).toString()).toString(16)
   return hex
+}
+
+private logInfo(message) {
+    if (txtEnable) log.info("${device} : ${message}")
+}
+
+private logDebug(message) {
+    if (debugEnable) log.debug("${device} : ${message}")
 }
