@@ -64,7 +64,7 @@ metadata
 //-- Installation ----------------------------------------------------------------------------------------
 
 def installed() {
-    logDebug("installed() - running configure()")
+    logInfo("installed() - running configure()")
     if (state.time == null)
       state.time = now()
     if (state.energyValue == null)
@@ -77,7 +77,7 @@ def installed() {
 }
 
 def updated() {
-    logDebug("updated() - running configure()")
+    logInfo("updated() - running configure()")
 
     if (state.time == null)
       state.time = now()
@@ -96,7 +96,7 @@ def updated() {
 }
 
 def uninstalled() {
-    logDebug("uninstalled() - unscheduling configure() and reset()")
+    logInfo("uninstalled() - unscheduling configure() and reset()")
     try {
         unschedule()
     } catch (errMsg) {
@@ -164,8 +164,10 @@ private createCustomMap(descMap){
                 map.descriptionText = "Current is ${map.value} ${map.unit}"
                 break
 
+            case "0551":
             default:
-                logDebug("unhandled electrical measurement attribute report - cluster ${descMap.cluster} attribute ${descMap.attrId} value ${descMap.value}")
+                // unused
+                //logDebug("unhandled electrical measurement attribute report - cluster ${descMap.cluster} attribute ${descMap.attrId} value ${descMap.value}")
                 break
         }
     } else if (descMap.cluster == "0702" && descMap.attrId == "0000") {
@@ -189,7 +191,7 @@ private createCustomMap(descMap){
 //-- Capabilities -----------------------------------------------------------------------------------------
 
 def configure(){
-    logDebug("configure()")
+    logInfo("configure()")
     try
     {
         unschedule()
@@ -267,7 +269,7 @@ l        schedule("0 0 0 ? * 7 *", resetWeeklyEnergy)
 }
 
 def refresh() {
-    logDebug("refresh()")
+    logInfo("refresh()")
 
     def cmds = []
     cmds += zigbee.readAttribute(0x0006, 0x0000) //Read on/off state

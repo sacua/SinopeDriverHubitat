@@ -194,11 +194,22 @@ private createCustomMap(descMap){
         map.value = getWaterStatus(descMap.value)
         map.descriptionText = "Water leak sensor reports ${map.value}"
 
-    } else if (descMap.cluster == "FF01" && descMap.attrId == "0076") {
-        map.name = "safetyWaterTemp"
-        map.value = getSafetyWaterTemperature(descMap.value)
-        map.descriptionText = "Safety water temperature reports ${map.value}"
+    } else if (descMap.cluster == "FF01") {
+        switch (descMap.attrId) {
+            case "0076":
+                map.name = "safetyWaterTemp"
+                map.value = getSafetyWaterTemperature(descMap.value)
+                map.descriptionText = "Safety water temperature reports ${map.value}"
+                break
 
+            case "0070":
+            case "0200":
+            case "0283":
+            default:
+                // unused
+                //logDebug("unhandled custom attribute report - cluster ${descMap.cluster} attribute ${descMap.attrId} value ${descMap.value}")
+                break
+        }
     } else {
         logDebug("Unhandled attribute report - cluster ${descMap.cluster} attribute ${descMap.attrId} value ${descMap.value}")
     }
