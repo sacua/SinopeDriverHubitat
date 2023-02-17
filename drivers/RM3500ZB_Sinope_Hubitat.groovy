@@ -23,9 +23,11 @@ metadata
         capability "Configuration"
         capability "Refresh"
         capability "Outlet"
+        capability "CurrentMeter"
         capability "PowerMeter"
         capability "EnergyMeter"
         capability "TemperatureMeasurement"
+        capability "VoltageMeasurement"
         capability "WaterSensor"
 
         attribute "safetyWaterTemp", "boolean"
@@ -164,7 +166,7 @@ private createCustomMap(descMap){
 
             case "0508":
                 // RMSCurrent
-                map.name = "current"
+                map.name = "amperage"
                 map.value = getRMSCurrent(descMap.value)
                 map.unit = "A"
                 map.descriptionText = "Current is ${map.value} ${map.unit}"
