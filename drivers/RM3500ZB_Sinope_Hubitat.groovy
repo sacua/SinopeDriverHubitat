@@ -31,7 +31,7 @@ metadata
         capability "VoltageMeasurement"
         capability "WaterSensor"
 
-        attribute "safetyWaterTemp", "boolean"
+        attribute "safetyWaterTemp", "enum", ["true", "false"]
         attribute "cost", "number"
         attribute "dailyCost", "number"
         attribute "weeklyCost", "number"
