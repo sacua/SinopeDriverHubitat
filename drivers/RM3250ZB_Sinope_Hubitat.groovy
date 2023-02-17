@@ -248,7 +248,7 @@ def configure(){
     } else if (weeklyReset == "Friday") {
         schedule("0 0 0 ? * 6 *", resetWeeklyEnergy)
     } else if (weeklyReset == "Saturday") {
-l        schedule("0 0 0 ? * 7 *", resetWeeklyEnergy)
+        schedule("0 0 0 ? * 7 *", resetWeeklyEnergy)
     }
 
     state.switchTypeDigital = false
