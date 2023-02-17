@@ -20,14 +20,16 @@
 
 metadata
 {
-     definition(name: "Load Control RM3250ZB with energy meter", namespace: "sacua", author: "Samuel Cuerrier Auclair") {
+    definition(name: "Load Controller RM3250ZB with energy meter", namespace: "sacua", author: "Samuel Cuerrier Auclair") {
         capability "Switch"
         capability "Configuration"
         capability "Refresh"
         capability "Outlet"
         capability "PowerMeter"
         capability "EnergyMeter"
-         
+        capability "CurrentMeter"
+        capability "VoltageMeasurement"
+
         attribute "cost", "number"
         attribute "dailyCost", "number"
         attribute "weeklyCost", "number"
@@ -37,13 +39,13 @@ metadata
         attribute "weeklyEnergy", "number"
         attribute "monthlyEnergy", "number"
         attribute "yearlyEnergy", "number"
-        
+
         command "resetEnergyOffset", ["number"]
         command "resetDailyEnergy"
         command "resetWeeklyEnergy"
         command "resetMonthlyEnergy"
         command "resetYearlyEnergy"
-          
+
         preferences {
           input name: "powerReport", type: "number", title: "Power change", description: "Amount of wattage difference to trigger power report (1..*)",  range: "1..*", defaultValue: 30
           input name: "energyChange", type: "number", title: "Energy increment", description: "Minimum increment of the energy meter in Wh to trigger energy reporting (10..*)", range: "10..*", defaultValue: 10
@@ -52,7 +54,9 @@ metadata
           input name: "yearlyReset", type: "enum", title: "Yearly reset month", description: "Month on which the yearly energy meter return to 0", options:["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"], defaultValue: "January", multiple: false, required: true
           input name: "txtEnable", type: "bool", title: "Enable logging info", defaultValue: true
         }
-        
+
+        fingerprint profileId:"0104", inClusters:"0000,0002,0003,0004,0005,0006,0702,0B04,0B05,FF01", outClusters:"0003,0004,0019", model:"RM3250ZB", manufacturer:"Sinope Technologies", deviceJoinName: "Sinope Load Controller"
+
     }
 }
 
@@ -60,29 +64,29 @@ metadata
 
 def installed() {
     if (txtEnable) log.info "installed() : running configure()"
-    if (state.time == null)  
+    if (state.time == null)
       state.time = now()
-    if (state.energyValue == null) 
+    if (state.energyValue == null)
       state.energyValue = 0 as double
-    if (state.costValue == null) 
+    if (state.costValue == null)
       state.costValue = 0 as float
-    if (state.powerValue == null)  
+    if (state.powerValue == null)
       state.powerValue = 0 as int
     configure()
 }
 
 def updated() {
     if (txtEnable) log.info "updated() : running configure()"
-    
-    if (state.time == null)  
+
+    if (state.time == null)
       state.time = now()
-    if (state.energyValue == null) 
+    if (state.energyValue == null)
       state.energyValue = 0 as double
-    if (state.powerValue == null)  
+    if (state.powerValue == null)
       state.powerValue = 0 as int
-    if (state.costValue == null) 
+    if (state.costValue == null)
       state.costValue = 0 as float
-    
+
     if (!state.updatedLastRanAt || now() >= state.updatedLastRanAt + 5000) {
       state.updatedLastRanAt = now()
       configure()
@@ -92,14 +96,14 @@ def updated() {
 
 def uninstalled() {
     if (txtEnable) log.info "uninstalled() : unscheduling configure() and reset()"
-    try {    
+    try {
         unschedule()
     } catch (errMsg) {
         log.info "uninstalled(): Error unschedule() - ${errMsg}"
     }
 }
 
-      
+
 //-- Parsing -----------------------------------------------------------------------------------------
 
 // parse events into attributes
@@ -111,8 +115,8 @@ def parse(String description) {
         // log.info description
         def descMap = zigbee.parseDescriptionAsMap(description)
         result += createCustomMap(descMap)
-        if(descMap.additionalAttrs){
-               def mapAdditionnalAttrs = descMap.additionalAttrs
+        if(descMap.additionalAttrs) {
+            def mapAdditionnalAttrs = descMap.additionalAttrs
             mapAdditionnalAttrs.each{add ->
                 add.cluster = descMap.cluster
                 result += createCustomMap(add)
@@ -125,32 +129,66 @@ def parse(String description) {
 private createCustomMap(descMap){
     def result = null
     def map = [: ]
-        if (descMap.cluster == "0006" && descMap.attrId == "0000" && state.flashing == false) {
-            map.name = "switch"
-            map.value = getSwitchMap()[descMap.value]
-            
-        } else if (descMap.cluster == "0B04" && descMap.attrId == "050B") {
-            map.name = "power"
-            map.value = getActivePower(descMap.value)
-            map.unit = "W"
-        
-        } else if (descMap.cluster == "0702" && descMap.attrId == "0000") {
-            state.energyValue = getEnergy(descMap.value) as BigInteger
-            runIn(2,"energyCalculation")
+
+    if (descMap.cluster == "0006" && descMap.attrId == "0000") {
+        map.name = "switch"
+        map.value = getSwitchMap()[descMap.value]
+        map.type = state.switchTypeDigital ? "digital" : "physical"
+        state.switchTypeDigital = false
+        map.descriptionText = "Load controller is ${map.value} [${map.type}]"
+
+    } else if (descMap.cluster == "0B04") {
+        switch(descMap.attrId) {
+            case "050B":
+                // ActivePower
+                map.name = "power"
+                map.value = getActivePower(descMap.value)
+                map.unit = "W"
+                map.descriptionText = "Power is ${map.value} ${map.unit}"
+                break
+
+            case "0505":
+                // RMSVoltage
+                map.name = "voltage"
+                map.value = getRMSVoltage(descMap.value)
+                map.unit = "V"
+                map.descriptionText = "Voltage is ${map.value} ${map.unit}"
+                break
+
+            case "0508":
+                // RMSCurrent
+                map.name = "amperage"
+                map.value = getRMSCurrent(descMap.value)
+                map.unit = "A"
+                map.descriptionText = "Current is ${map.value} ${map.unit}"
+                break
+
+            default:
+                if (txtEnable) log.debug "unhandled electrical measurement attribute report - cluster ${descMap.cluster} attribute ${descMap.attrId} value ${descMap.value}"
+                break
         }
-        
+    } else if (descMap.cluster == "0702" && descMap.attrId == "0000") {
+        state.energyValue = getEnergy(descMap.value) as BigInteger
+        runIn(2,"energyCalculation")
+
+    } else {
+        if (txtEnable) log.debug("Unhandled attribute report - cluster ${descMap.cluster} attribute ${descMap.attrId} value ${descMap.value}")
+    }
+
     if (map) {
         def isChange = isStateChange(device, map.name, map.value.toString())
         map.displayed = isChange
+        //log.debug "event map : ${map}"
+        if (map.descriptionText && txtEnable) log.info "${map.descriptionText}"
         result = createEvent(map)
     }
     return result
 }
-            
+
 //-- Capabilities -----------------------------------------------------------------------------------------
 
-def configure(){    
-    if (txtEnable) log.info "configure()"    
+def configure(){
+    if (txtEnable) log.info "configure()"
     try
     {
         unschedule()
@@ -158,16 +196,16 @@ def configure(){
     catch (e)
     {
     }
-    
+
     schedule("0 0 * * * ? *", energySecCalculation)
     schedule("0 0 0 * * ? *", resetDailyEnergy)
     schedule("0 0 0 1 * ? *", resetMonthlyEnergy)
-    
+
      if (weeklyReset == null)
 		weeklyReset = "Sunday" as String
     if (yearlyReset == null)
 		yearlyReset = "January" as String
-    
+
     if (yearlyReset == "January") {
         schedule("0 0 0 1 1 ? *", resetYearlyEnergy)
     } else if (yearlyReset == "February") {
@@ -193,7 +231,7 @@ def configure(){
     } else if (yearlyReset == "February") {
         schedule("0 0 0 1 12 ? *", resetYearlyEnergy)
     }
-    
+
     if (weeklyReset == "Sunday") {
         schedule("0 0 0 ? * 1 *", resetWeeklyEnergy)
     } else if (weeklyReset == "Monday") {
@@ -207,17 +245,21 @@ def configure(){
     } else if (weeklyReset == "Friday") {
         schedule("0 0 0 ? * 6 *", resetWeeklyEnergy)
     } else if (weeklyReset == "Saturday") {
-        schedule("0 0 0 ? * 7 *", resetWeeklyEnergy)
+l        schedule("0 0 0 ? * 7 *", resetWeeklyEnergy)
     }
+
+    state.switchTypeDigital = false
 
     // Prepare our zigbee commands
     def cmds = []
 
     // Configure Reporting
-    cmds += zigbee.configureReporting(0x0006, 0x0000, 0x10, 0, 600, null)           //On off state
-    cmds += zigbee.configureReporting(0x0B04, 0x050B, 0x29, 30, 600, (int) powerReport)
+    cmds += zigbee.configureReporting(0x0006, 0x0000, 0x10, 0, 600)                      // On/off state
+    cmds += zigbee.configureReporting(0x0B04, 0x0505, 0x29, 30, 600)                     // Voltage
+    cmds += zigbee.configureReporting(0x0B04, 0x0508, 0x29, 30, 600)                     // Current
+    cmds += zigbee.configureReporting(0x0B04, 0x050B, 0x29, 30, 600, (int) powerReport)  // Active power reporting
     cmds += zigbee.configureReporting(0x0702, 0x0000, DataType.UINT48, 59, 1799, (int) energyChange) //Energy reading
-    
+
     if (cmds)
       sendZigbeeCommands(cmds) // Submit zigbee commands
     return
@@ -225,44 +267,46 @@ def configure(){
 
 def refresh() {
     if (txtEnable) log.info "refresh()"
-    
-    def cmds = []    
-    cmds += zigbee.readAttribute(0x0006, 0x0000) //Read On off state
-    cmds += zigbee.readAttribute(0x0B04, 0x050B)  //Read thermostat Active power
+
+    def cmds = []
+    cmds += zigbee.readAttribute(0x0006, 0x0000) //Read on/off state
+    cmds += zigbee.readAttribute(0x0B04, 0x0505) //Read voltage
+    cmds += zigbee.readAttribute(0x0B04, 0x0508) //Read current
+    cmds += zigbee.readAttribute(0x0B04, 0x050B) //Read active power
     cmds += zigbee.readAttribute(0x0702, 0x0000) //Read energy delivered
-    
+
     if (cmds)
         sendZigbeeCommands(cmds) // Submit zigbee commands
-}   
+}
 
 
 def off() {
-    state.flashing = false
+    state.switchTypeDigital = true
     def cmds = []
     cmds += zigbee.command(0x0006, 0x00)
-    sendZigbeeCommands(cmds)    
+    sendZigbeeCommands(cmds)
 }
 
 def on() {
-    state.flashing = false
+    state.switchTypeDigital = true
     def cmds = []
     cmds += zigbee.command(0x0006, 0x01)
-    sendZigbeeCommands(cmds)    
+    sendZigbeeCommands(cmds)
 }
 
 def resetEnergyOffset(text) {
-     if (text != null) {
-          BigInteger newOffset = text.toBigInteger()
-          state.dailyEnergy = state.dailyEnergy - state.offsetEnergy + newOffset
-          state.weeklyEnergy = state.weeklyEnergy - state.offsetEnergy + newOffset
-          state.monthlyEnergy = state.monthlyEnergy - state.offsetEnergy + newOffset
-          state.yearlyEnergy = state.yearlyEnergy - state.offsetEnergy + newOffset
-          state.offsetEnergy = newOffset
-          float totalEnergy = (state.energyValue + state.offsetEnergy)/1000
-          sendEvent(name: "energy", value: totalEnergy, unit: "kWh")
-          runIn(2,energyCalculation)
-          runIn(2,energySecCalculation)
-     }
+    if (text != null) {
+        BigInteger newOffset = text.toBigInteger()
+        state.dailyEnergy = state.dailyEnergy - state.offsetEnergy + newOffset
+        state.weeklyEnergy = state.weeklyEnergy - state.offsetEnergy + newOffset
+        state.monthlyEnergy = state.monthlyEnergy - state.offsetEnergy + newOffset
+        state.yearlyEnergy = state.yearlyEnergy - state.offsetEnergy + newOffset
+        state.offsetEnergy = newOffset
+        float totalEnergy = (state.energyValue + state.offsetEnergy)/1000
+        sendEvent(name: "energy", value: totalEnergy, unit: "kWh", descriptionText:"Total energy is ${totalEnergy} kWh")
+        runIn(2,energyCalculation)
+        runIn(2,energySecCalculation)
+    }
 }
 
 def energyCalculation() {
@@ -271,23 +315,24 @@ def energyCalculation() {
     if (state.dailyEnergy == null)
        state.dailyEnergy = state.energyValue as BigInteger
     if (device.currentValue("energy") == null)
-        sendEvent(name: "energy", value: 0, unit: "kWh")
-     
-    if (state.energyValue + state.offsetEnergy < device.currentValue("energy")*1000) { //Although energy are parse as BigInteger, sometimes (like 1 times per month during heating  time) the value received is lower than the precedent but not zero..., so we define a new offset when that happen
-        BigInteger newOffset = device.currentValue("energy")*1000 - state.energyValue as BigInteger
-        if (newOffset < 1e10) //Sometimes when the hub boot, the offset is very large... munch too large
-            state.offsetEnergy = newOffset
+        sendEvent(name: "energy", value: 0, unit: "kWh", descriptionText:"Total energy is ${totalEnergy} kWh")
+    else {
+        if (state.energyValue + state.offsetEnergy < device.currentValue("energy")*1000) { //Although energy are parse as BigInteger, sometimes (like 1 times per month during heating  time) the value received is lower than the precedent but not zero..., so we define a new offset when that happen
+            BigInteger newOffset = device.currentValue("energy")*1000 - state.energyValue as BigInteger
+            if (newOffset < 1e10) //Sometimes when the hub boot, the offset is very large... munch too large
+                state.offsetEnergy = newOffset
+        }
     }
-    
+
     float dailyEnergy = roundTwoPlaces((state.energyValue + state.offsetEnergy - state.dailyEnergy)/1000)
     float totalEnergy = (state.energyValue + state.offsetEnergy)/1000
-    
+
     localCostPerKwh = energyPrice as float
     float dailyCost = roundTwoPlaces(dailyEnergy*localCostPerKwh/100)
-    
+
     sendEvent(name: "dailyEnergy", value: dailyEnergy, unit: "kWh")
     sendEvent(name: "dailyCost", value: dailyCost, unit: "\$")
-    sendEvent(name: "energy", value: totalEnergy, unit: "kWh")
+    sendEvent(name: "energy", value: totalEnergy, unit: "kWh", descriptionText: "Total energy is ${totalEnergy} kWh")
 }
 
 def energySecCalculation() { //This one is performed every hour to not overwhelm the number of events which will create a warning in hubitat main page
@@ -297,12 +342,12 @@ def energySecCalculation() { //This one is performed every hour to not overwhelm
        state.monthlyEnergy = state.energyValue as BigInteger
     if (state.yearlyEnergy == null)
        state.yearlyEnergy = state.energyValue as BigInteger
-    
+
     float weeklyEnergy = roundTwoPlaces((state.energyValue + state.offsetEnergy - state.weeklyEnergy)/1000)
     float monthlyEnergy = roundTwoPlaces((state.energyValue + state.offsetEnergy - state.monthlyEnergy)/1000)
     float yearlyEnergy = roundTwoPlaces((state.energyValue + state.offsetEnergy - state.yearlyEnergy)/1000)
     float totalEnergy = roundTwoPlaces((state.energyValue + state.offsetEnergy)/1000)
-    
+
     localCostPerKwh = energyPrice as float
     float weeklyCost = roundTwoPlaces(weeklyEnergy*localCostPerKwh/100)
     float monthlyCost = roundTwoPlaces(monthlyEnergy*localCostPerKwh/100)
@@ -316,8 +361,8 @@ def energySecCalculation() { //This one is performed every hour to not overwhelm
     sendEvent(name: "weeklyCost", value: weeklyCost, unit: "\$")
     sendEvent(name: "monthlyCost", value: monthlyCost, unit: "\$")
     sendEvent(name: "yearlyCost", value: yearlyCost, unit: "\$")
-    sendEvent(name: "cost", value: totalCost, unit: "\$")      
-    
+    sendEvent(name: "cost", value: totalCost, unit: "\$")
+
 }
 
 def resetDailyEnergy() {
@@ -329,7 +374,7 @@ def resetDailyEnergy() {
 	float dailyCost = roundTwoPlaces(dailyEnergy*localCostPerKwh/100)
     sendEvent(name: "dailyEnergy", value: dailyEnergy, unit: "kWh")
 	sendEvent(name: "dailyCost", value: dailyCost, unit: "\$")
-    
+
 }
 
 def resetWeeklyEnergy() {
@@ -364,7 +409,7 @@ def resetYearlyEnergy() {
     sendEvent(name: "yearlyEnergy", value: yearlyEnergy, unit: "kWh")
 	sendEvent(name: "yearlyCost", value: yearlyCost, unit: "\$")
 }
-                  
+
 //-- Private functions -----------------------------------------------------------------------------------
 private void sendZigbeeCommands(cmds) {
     //cmds.removeAll { it.startsWith("delay") }
@@ -379,11 +424,27 @@ private getSwitchMap() {
   ]
 }
 
-private getActivePower(value) {
+private getActivePower(attributeReportValue) {
+    if (attributeReportValue != null)
+        return Integer.parseInt(attributeReportValue, 16)
+}
+
+private getRMSVoltage(attributeReportValue) {
+    if (attributeReportValue != null)
+        return Integer.parseInt(attributeReportValue, 16)
+}
+
+private getRMSCurrent(attributeReportValue) {
+    // attribute report is in mA
+    if (attributeReportValue != null)
+        return Integer.parseInt(attributeReportValue, 16) / 1000
+}
+
+private getEnergy(value) {
   if (value != null)
   {
-    def activePower = Integer.parseInt(value, 16)
-    return activePower
+    BigInteger EnergySum = new BigInteger(value,16)
+    return EnergySum
   }
 }
 
@@ -396,12 +457,4 @@ private hex(value)
 {
   String hex = new BigInteger(Math.round(value).toString()).toString(16)
   return hex
-}
-
-private getEnergy(value) {
-  if (value != null)
-  {
-    BigInteger EnergySum = new BigInteger(value,16)
-    return EnergySum
-  }
 }

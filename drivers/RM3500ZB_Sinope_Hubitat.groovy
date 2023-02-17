@@ -286,15 +286,17 @@ def configure(){
         switchReportingSeconds = "0"
     if (prefSafetyWaterTemp == null)
         prefSafetyWaterTemp = true
-    
+
     cmds += zigbee.configureReporting(0x0402, 0x0000, 0x29, 30, 580, (int) tempChange)  //local temperature
     cmds += zigbee.configureReporting(0x0500, 0x0002, DataType.BITMAP16, 0, Integer.parseInt(waterReportingSeconds), null)  //water state
     cmds += zigbee.configureReporting(0x0006, 0x0000, 0x10, 0, Integer.parseInt(switchReportingSeconds), null)  //On off state
+    //cmds += zigbee.configureReporting(0x0B04, 0x0505, 0x29, 30, 600)                     // Voltage
+    //cmds += zigbee.configureReporting(0x0B04, 0x0508, 0x29, 30, 600)                     // Current
     cmds += zigbee.configureReporting(0x0B04, 0x050B, 0x29, 30, 600, (int) powerReport)  //Active power reporting
     cmds += zigbee.configureReporting(0x0702, 0x0000, DataType.UINT48, 299, 1799, (int) energyChange)  //Energy reading
     cmds += zigbee.configureReporting(0xFF01, 0x0076, DataType.UINT8, 0, 86400, null, [mfgCode: "0x119C"])  //Safety water temp reporting every 24 hours
-    
-    // Configure Safety Water Temp 
+
+    // Configure Safety Water Temp
     if (!prefSafetyWaterTemp) {
 //        log.warn "Water temperature safety is off, water temperature can go below 45°C / 113°F without turning back on by itself"
         cmds += zigbee.writeAttribute(0xFF01, 0x0076, DataType.UINT8, 0, [mfgCode: "0x119C"])  //set water temp min to 0 (disabled)
