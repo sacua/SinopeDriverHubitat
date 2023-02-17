@@ -23,9 +23,11 @@ metadata
         capability "Configuration"
         capability "Refresh"
         capability "Outlet"
+        capability "CurrentMeter"
         capability "PowerMeter"
         capability "EnergyMeter"
         capability "TemperatureMeasurement"
+        capability "VoltageMeasurement"
         capability "WaterSensor"
 
         attribute "safetyWaterTemp", "boolean"
@@ -57,8 +59,8 @@ metadata
         input name: "energyPrice", type: "float", title: "c/kWh Cost:", description: "Electric Cost per Kwh in cent", range: "0..*", defaultValue: 9.38
         input name: "weeklyReset", type: "enum", title: "Weekly reset day", description: "Day on which the weekly energy meter return to 0", options:["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"], defaultValue: "Sunday", multiple: false, required: true
         input name: "yearlyReset", type: "enum", title: "Yearly reset month", description: "Month on which the yearly energy meter return to 0", options:["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"], defaultValue: "January", multiple: false, required: true
-        input name: "switchReportingSeconds", type: "enum", title: "Switch status reporting", description: "Maximum time to report switch status even if no change", options:[0: "never", 60: "1 minute", 600:"10 minutes", 3600:"1 hour", 21600:"6 hours", 43200:"12 hours", 86400:"24 hours"], defaultValue: "0", multiple: false, reqired: true
-        input name: "waterReportingSeconds", type: "enum", title: "Water status reporting", description: "Maximum time to report water status even if no change", options:[0: "never", 60: "1 minute", 600:"10 minutes", 3600:"1 hour", 21600:"6 hours", 43200:"12 hours", 86400:"24 hours"], defaultValue: "0", multiple: false, reqired: true
+        input name: "switchReportingSeconds", type: "enum", title: "Switch status reporting", description: "Maximum time to report heater switch status even if no change", options:[0: "never", 60: "1 minute", 600:"10 minutes", 3600:"1 hour", 21600:"6 hours", 43200:"12 hours", 86400:"24 hours"], defaultValue: "0", multiple: false, required: true
+        input name: "waterReportingSeconds", type: "enum", title: "Water leak sensor reporting", description: "Maximum time to report water leak sensor status even if no change", options:[0: "never", 60: "1 minute", 600:"10 minutes", 3600:"1 hour", 21600:"6 hours", 43200:"12 hours", 86400:"24 hours"], defaultValue: "0", multiple: false, required: true
         input name: "prefSafetyWaterTemp", type: "bool", title: "Enable safety minimum water temperature feature (45°C/113°F)", defaultValue: true
         input name: "infoEnable", type: "bool", title: "Enable descriptionText logging", defaultValue: true
         input name: "debugEnable", type: "bool", title: "Enable debug logging", defaultValue: true
@@ -69,7 +71,7 @@ metadata
 //-- Installation ----------------------------------------------------------------------------------------
 
 def installed() {
-    if (infoEnable) log.info "installed() : running configure()"
+    logInfo("installed() - running configure()")
     if (state.time == null)
       state.time = now()
     if (state.energyValue == null)
@@ -82,7 +84,7 @@ def installed() {
 }
 
 def updated() {
-    if (infoEnable) log.info "updated() : running configure()"
+    logInfo("updated() - running configure()")
 
     if (state.time == null)
       state.time = now()
@@ -101,11 +103,11 @@ def updated() {
 }
 
 def uninstalled() {
-    if (infoEnable) log.info "uninstalled() : unscheduling configure() and reset()"
+    logInfo("uninstalled() - unscheduling configure() and reset()")
     try {
         unschedule()
     } catch (errMsg) {
-        log.error "uninstalled(): Error unschedule() - ${errMsg}"
+        log.error "${device} : uninstalled() - unschedule() threw an exception : ${errMsg}"
     }
 }
 
@@ -117,7 +119,7 @@ def parse(String description) {
     def result = []
     def descMap = zigbee.parseDescriptionAsMap(description)
 
-    if (debugEnable) log.debug "parse - description = ${descMap}"
+    logDebug("parse - description = ${descMap}")
 
     if (description?.startsWith("read attr -")) {
         result += createCustomMap(descMap)
@@ -144,12 +146,36 @@ private createCustomMap(descMap){
         state.switchTypeDigital = false
         map.descriptionText = "Water heater switch is ${map.value} [${map.type}]"
 
-    } else if (descMap.cluster == "0B04" && descMap.attrId == "050B") {
-        map.name = "power"
-        map.value = getActivePower(descMap.value)
-        map.unit = "W"
-        map.descriptionText = "Current power is ${map.value} ${map.unit}"
+    } else if (descMap.cluster == "0B04") {
+        switch(descMap.attrId) {
+            case "050B":
+                // ActivePower
+                map.name = "power"
+                map.value = getActivePower(descMap.value)
+                map.unit = "W"
+                map.descriptionText = "Power is ${map.value} ${map.unit}"
+                break
 
+            case "0505":
+                // RMSVoltage
+                map.name = "voltage"
+                map.value = getRMSVoltage(descMap.value)
+                map.unit = "V"
+                map.descriptionText = "Voltage is ${map.value} ${map.unit}"
+                break
+
+            case "0508":
+                // RMSCurrent
+                map.name = "amperage"
+                map.value = getRMSCurrent(descMap.value)
+                map.unit = "A"
+                map.descriptionText = "Current is ${map.value} ${map.unit}"
+                break
+
+            default:
+                logDebug("unhandled electrical measurement attribute report - cluster ${descMap.cluster} attribute ${descMap.attrId} value ${descMap.value}")
+                break
+        }
     } else if (descMap.cluster == "0702" && descMap.attrId == "0000") {
         // energy event will be sent from energyCalculation()
         state.energyValue = getEnergy(descMap.value) as BigInteger
@@ -159,25 +185,29 @@ private createCustomMap(descMap){
         map.name = "temperature"
         map.value = getTemperature(descMap.value)
         map.unit = getTemperatureScale()
-        map.descriptionText = "Current water temperature is ${map.value} ${map.unit}"
+        map.descriptionText = "Water temperature is ${map.value} ${map.unit}"
 
     } else if (descMap.cluster == "0500" && descMap.attrId == "0002") {
+        logDebug("water sensor report : " + descMap.value)
         map.name = "water"
-        if (debugEnable) log.debug "water sensor report : " + descMap.value
         map.value = getWaterStatus(descMap.value)
-        map.descriptionText = "Water sensor reports ${map.value}"
+        map.descriptionText = "Water leak sensor reports ${map.value}"
+
     } else if (descMap.cluster == "FF01" && descMap.attrId == "0076") {
         map.name = "safetyWaterTemp"
-        if (debugEnable) log.debug "safety water temperature report : " + descMap.value
         map.value = getSafetyWaterTemperature(descMap.value)
         map.descriptionText = "Safety water temperature reports ${map.value}"
+
+    } else {
+        logDebug("Unhandled attribute report - cluster ${descMap.cluster} attribute ${descMap.attrId} value ${descMap.value}")
     }
 
     if (map) {
         def isChange = isStateChange(device, map.name, map.value.toString())
         map.displayed = isChange         // not sure what this does as it's not a documented parameter for sendEvent()
         //map.isStateChange = isChange   // don't set, let default platform filtering happen.  See sendEvent() documentation
-        if (debugEnable) log.debug "event map : ${map}"
+        logDebug("event map : ${map}")
+        if (map.descriptionText) logInfo("${map.descriptionText}")
         result = createEvent(map)
     }
 
@@ -187,7 +217,7 @@ private createCustomMap(descMap){
 //-- Capabilities -----------------------------------------------------------------------------------------
 
 def configure(){
-    if (infoEnable) log.info "configure()"
+    logInfo("configure()")
     try
     {
         unschedule()
@@ -286,20 +316,20 @@ def configure(){
         switchReportingSeconds = "0"
     if (prefSafetyWaterTemp == null)
         prefSafetyWaterTemp = true
-    
-    cmds += zigbee.configureReporting(0x0402, 0x0000, 0x29, 30, 580, (int) tempChange)  //local temperature
-    cmds += zigbee.configureReporting(0x0500, 0x0002, DataType.BITMAP16, 0, Integer.parseInt(waterReportingSeconds), null)  //water state
-    cmds += zigbee.configureReporting(0x0006, 0x0000, 0x10, 0, Integer.parseInt(switchReportingSeconds), null)  //On off state
-    cmds += zigbee.configureReporting(0x0B04, 0x050B, 0x29, 30, 600, (int) powerReport)  //Active power reporting
-    cmds += zigbee.configureReporting(0x0702, 0x0000, DataType.UINT48, 299, 1799, (int) energyChange)  //Energy reading
-    cmds += zigbee.configureReporting(0xFF01, 0x0076, DataType.UINT8, 0, 86400, null, [mfgCode: "0x119C"])  //Safety water temp reporting every 24 hours
-    
-    // Configure Safety Water Temp 
+
+    cmds += zigbee.configureReporting(0x0402, 0x0000, 0x29, 30, 580, (int) tempChange)                      // Water temperature
+    cmds += zigbee.configureReporting(0x0500, 0x0002, DataType.BITMAP16, 0, Integer.parseInt(waterReportingSeconds))  // Water lear sensor state
+    cmds += zigbee.configureReporting(0x0006, 0x0000, 0x10, 0, Integer.parseInt(switchReportingSeconds))    // Heater On/off state
+    cmds += zigbee.configureReporting(0x0B04, 0x050B, 0x29, 30, 600, (int) powerReport)                     // Active power reporting
+    cmds += zigbee.configureReporting(0x0702, 0x0000, DataType.UINT48, 299, 1799, (int) energyChange)       // Energy reading
+    cmds += zigbee.configureReporting(0xFF01, 0x0076, DataType.UINT8, 0, 86400, null, [mfgCode: "0x119C"])  // Safety water temp reporting every 24 hours
+
+    // Configure Safety Water Temp
     if (!prefSafetyWaterTemp) {
 //        log.warn "Water temperature safety is off, water temperature can go below 45°C / 113°F without turning back on by itself"
         cmds += zigbee.writeAttribute(0xFF01, 0x0076, DataType.UINT8, 0, [mfgCode: "0x119C"])  //set water temp min to 0 (disabled)
     } else {
-//        if (infoEnable) log.info "Water temperature safety is on"
+//        logInfo("Water temperature safety is on")
         cmds += zigbee.writeAttribute(0xFF01, 0x0076, DataType.UINT8, 45, [mfgCode: "0x119C"])  //set water temp min to 45 (only acceptable value)
     }
 
@@ -311,14 +341,14 @@ def configure(){
 
 
 def refresh() {
-    if (infoEnable) log.info "refresh()"
+    logInfo("refresh()")
 
     def cmds = []
     cmds += zigbee.readAttribute(0x0402, 0x0000) //Read Local Temperature
     cmds += zigbee.readAttribute(0x0500, 0x0002) //Read Water leak
     cmds += zigbee.readAttribute(0xFF01, 0x0076, [mfgCode: "0x119C"]) //Read state of water temp safety setting (45 or 0)
     cmds += zigbee.readAttribute(0x0006, 0x0000) //Read On off state
-    cmds += zigbee.readAttribute(0x0B04, 0x050B)  //Read thermostat Active power
+    cmds += zigbee.readAttribute(0x0B04, 0x050B) //Read thermostat Active power
     cmds += zigbee.readAttribute(0x0702, 0x0000) //Read energy delivered
 
     if (cmds)
@@ -326,7 +356,7 @@ def refresh() {
 }
 
 def off() {
-    if (debugEnable) log.debug "command switch OFF"
+    logDebug("command switch OFF")
     state.switchTypeDigital = true
     def cmds = []
     cmds += zigbee.command(0x0006, 0x00)
@@ -334,7 +364,7 @@ def off() {
 }
 
 def on() {
-    if (debugEnable) log.debug "command switch ON"
+    logDebug("command switch ON")
     state.switchTypeDigital = true
     def cmds = []
     cmds += zigbee.command(0x0006, 0x01)
@@ -500,7 +530,7 @@ private getTemperature(value) {
 private getSafetyWaterTemperature(value) {
     switch(value) {
         case "2D" :
-            if (infoEnable) log.info "Safety water temperature is enabled"
+            logInfo("Safety water temperature is enabled")
             device.updateSetting("prefSafetyWaterTemp",true)
             return "true"
             break
@@ -515,11 +545,9 @@ private getSafetyWaterTemperature(value) {
 private getWaterStatus(value) {
     switch(value) {
         case "0030" :
-            if (infoEnable) log.info "Water sensor is dry"
             return "dry"
             break
         case "0031" :
-            if (infoEnable) log.info "Water sensor is wet"
             return "wet"
             break
     }
@@ -528,24 +556,37 @@ private getWaterStatus(value) {
 private getSwitchStatus(value) {
     switch(value) {
         case "00" :
-            if (infoEnable) log.info "Switch is off"
             return "off"
             break
         case "01" :
-            if (infoEnable) log.info "Switch is on"
             return "on"
             break
     }
 }
 
-private getActivePower(value) {
-  if (value != null)
-  {
-    def activePower = Integer.parseInt(value, 16)
-    return activePower
-  }
+private getActivePower(attributeReportValue) {
+    if (attributeReportValue != null)
+        return Integer.parseInt(attributeReportValue, 16)
 }
 
+private getRMSVoltage(attributeReportValue) {
+    if (attributeReportValue != null)
+        return Integer.parseInt(attributeReportValue, 16)
+}
+
+private getRMSCurrent(attributeReportValue) {
+    // attribute report is in mA
+    if (attributeReportValue != null)
+        return Integer.parseInt(attributeReportValue, 16) / 1000
+}
+
+private getEnergy(value) {
+  if (value != null)
+  {
+    BigInteger EnergySum = new BigInteger(value,16)
+    return EnergySum
+  }
+}
 
 private roundTwoPlaces(val)
 {
@@ -558,14 +599,10 @@ private hex(value)
   return hex
 }
 
-private getEnergy(value) {
-  if (value != null)
-  {
-    BigInteger EnergySum = new BigInteger(value,16)
-    return EnergySum
-  }
+private logInfo(message) {
+    if (infoEnable) log.info("${device} : ${message}")
 }
 
-private getTemperatureScale() {
-	return "${location.temperatureScale}"
+private logDebug(message) {
+    if (debugEnable) log.debug("${device} : ${message}")
 }
