@@ -3,7 +3,7 @@
   "author": "Samuel C. Auclair",
   "minimumHEVersion": "2.1.9",
   "dateReleased": "2023-02-12",
-  "releaseNotes": "Enable custom energy reset time and manual reset for the energy meter. Enable debug parse.\n2023-02-07 Correct typo mistake in RM3205ZB driver\n2023-02-12 Adding RM3500ZB calypso water heater controller driver\n2023-02-13 Remove some bugs in the RM3500ZB driver\n2023-02-14 Cosmetic change and better description in the RM3500ZB driver\n2023-02-17 Modification in the RM3500ZB driver, add functionnality and better code construction",
+  "releaseNotes": "2023-02-19 Bug corrections for the yearly energy reset\n2023-02-17 Modification in the RM3500ZB driver, add functionnality and better code construction\n2023-02-14 Cosmetic change and better description in the RM3500ZB driver\n2023-02-13 Remove some bugs in the RM3500ZB driver\n2023-02-12 Adding RM3500ZB calypso water heater controller driver\n2023-02-07 Correct typo mistake in RM3205ZB driver\nEnable custom energy reset time and manual reset for the energy meter. Enable debug parse.",
   "communityLink": "https://community.hubitat.com/t/drivers-for-zigbee-sinope-devices/91960",
   "drivers": [
     {
@@ -12,7 +12,7 @@
       "namespace": "sacua",
       "location": "https://raw.githubusercontent.com/sacua/SinopeDriverHubitat/main/drivers/TH112xZB_Sinope_Hubitat.groovy",
       "required": false,
-      "version": "1.5.0"
+      "version": "1.5.1"
     },
     {
       "id": "180d831e-22b7-4349-946f-5dd1d12e36c0",
@@ -20,7 +20,7 @@
       "namespace": "sacua",
       "location": "https://raw.githubusercontent.com/sacua/SinopeDriverHubitat/main/drivers/TH1300ZB_Sinope_Hubitat.groovy",
       "required": false,
-      "version": "1.5.0"
+      "version": "1.5.1"
     },
     {
       "id": "65241f08-4e08-42cc-ba21-21fe2799c88b",
@@ -36,7 +36,7 @@
       "namespace": "sacua",
       "location": "https://raw.githubusercontent.com/sacua/SinopeDriverHubitat/main/drivers/SP2600ZB_Sinope_Hubitat.groovy",
       "required": false,
-      "version": "1.3.0"
+      "version": "1.3.1"
     },
     {
       "id": "04f92f69-c956-47bb-ae67-9bd6954a82a4",
