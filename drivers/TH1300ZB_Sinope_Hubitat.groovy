@@ -23,6 +23,7 @@
  * v1.3.0 Correction for the offset calculation very rarely, the reading is a super large negative value, when that happen, the offset does not change
  * v1.4.0 Enable debug parse, send event at configure for the supported mode and possible to reset the offset value
  * v1.5.0 Enable custom time for reset and manual reset
+ * v1.5.1 Correction of bug for the reset of energy meter
  */
 
 metadata
@@ -261,50 +262,71 @@ def configure(){
 	schedule(timesec + " " + timemin + " " + timehour + " * * ? *", refreshMaxPower) //refresh maximum power capacity of the equipement wired to the thermostat one time per day at a random moment
     
     if (weeklyReset == null)
-		weeklyReset = "Sunday" as String
+        weeklyReset = "Sunday" as String
     if (yearlyReset == null)
-		yearlyReset = "January" as String
-    
-    if (yearlyReset == "January") {
-        schedule("0 0 0 1 1 ? *", resetYearlyEnergy)
-    } else if (yearlyReset == "February") {
-        schedule("0 0 0 1 2 ? *", resetYearlyEnergy)
-    } else if (yearlyReset == "March") {
-        schedule("0 0 0 1 3 ? *", resetYearlyEnergy)
-    } else if (yearlyReset == "April") {
-        schedule("0 0 0 1 4 ? *", resetYearlyEnergy)
-    } else if (yearlyReset == "May") {
-        schedule("0 0 0 1 5 ? *", resetYearlyEnergy)
-    } else if (yearlyReset == "February") {
-        schedule("0 0 0 1 6 ? *", resetYearlyEnergy)
-    } else if (yearlyReset == "February") {
-        schedule("0 0 0 1 7 ? *", resetYearlyEnergy)
-    } else if (yearlyReset == "February") {
-        schedule("0 0 0 1 8 ? *", resetYearlyEnergy)
-    } else if (yearlyReset == "February") {
-        schedule("0 0 0 1 9 ? *", resetYearlyEnergy)
-    } else if (yearlyReset == "February") {
-        schedule("0 0 0 1 10 ? *", resetYearlyEnergy)
-    } else if (yearlyReset == "February") {
-        schedule("0 0 0 1 11 ? *", resetYearlyEnergy)
-    } else if (yearlyReset == "February") {
-        schedule("0 0 0 1 12 ? *", resetYearlyEnergy)
+        yearlyReset = "January" as String
+
+    switch (yearlyReset) {
+        case "January" :
+            schedule("0 0 0 1 1 ? *", resetYearlyEnergy)
+            break
+        case "February" :
+            schedule("0 0 0 1 2 ? *", resetYearlyEnergy)
+            break
+        case "March" :
+            schedule("0 0 0 1 3 ? *", resetYearlyEnergy)
+            break
+        case "April" :
+            schedule("0 0 0 1 4 ? *", resetYearlyEnergy)
+            break
+        case "May" :
+            schedule("0 0 0 1 5 ? *", resetYearlyEnergy)
+            break
+        case "June" :
+            schedule("0 0 0 1 6 ? *", resetYearlyEnergy)
+            break
+        case "July" :
+            schedule("0 0 0 1 7 ? *", resetYearlyEnergy)
+            break
+        case "August" :
+            schedule("0 0 0 1 8 ? *", resetYearlyEnergy)
+            break
+        case "September" :
+            schedule("0 0 0 1 9 ? *", resetYearlyEnergy)
+            break
+        case "October" :
+            schedule("0 0 0 1 10 ? *", resetYearlyEnergy)
+            break
+        case "November" :
+            schedule("0 0 0 1 11 ? *", resetYearlyEnergy)
+            break
+        case "December" :
+            schedule("0 0 0 1 12 ? *", resetYearlyEnergy)
+            break
     }
-    
-    if (weeklyReset == "Sunday") {
-        schedule("0 0 0 ? * 1 *", resetWeeklyEnergy)
-    } else if (weeklyReset == "Monday") {
-        schedule("0 0 0 ? * 2 *", resetWeeklyEnergy)
-    } else if (weeklyReset == "Tuesday") {
-        schedule("0 0 0 ? * 3 *", resetWeeklyEnergy)
-    } else if (weeklyReset == "Wednesday") {
-        schedule("0 0 0 ? * 4 *", resetWeeklyEnergy)
-    } else if (weeklyReset == "Thursday") {
-        schedule("0 0 0 ? * 5 *", resetWeeklyEnergy)
-    } else if (weeklyReset == "Friday") {
-        schedule("0 0 0 ? * 6 *", resetWeeklyEnergy)
-    } else if (weeklyReset == "Saturday") {
-        schedule("0 0 0 ? * 7 *", resetWeeklyEnergy)
+
+    switch (weeklyReset) {
+        case "Sunday" :
+            schedule("0 0 0 ? * 1 *", resetWeeklyEnergy)
+            break
+        case "Monday" :
+            schedule("0 0 0 ? * 2 *", resetWeeklyEnergy)
+            break
+        case "Tuesday" :
+            schedule("0 0 0 ? * 3 *", resetWeeklyEnergy)
+            break
+        case "Wednesday" :
+            schedule("0 0 0 ? * 4 *", resetWeeklyEnergy)
+            break
+        case "Thursday" :
+            schedule("0 0 0 ? * 5 *", resetWeeklyEnergy)
+            break
+        case "Friday" :
+            schedule("0 0 0 ? * 6 *", resetWeeklyEnergy)
+            break
+        case "Saturday" :
+            schedule("0 0 0 ? * 7 *", resetWeeklyEnergy)
+            break
     }
 
 	// Prepare our zigbee commands
