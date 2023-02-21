@@ -40,11 +40,11 @@
     },
     {
       "id": "04f92f69-c956-47bb-ae67-9bd6954a82a4",
-      "name": "Load Control RM3250ZB with energy meter",
+      "name": "Load Controller RM3250ZB with energy meter",
       "namespace": "sacua",
       "location": "https://raw.githubusercontent.com/sacua/SinopeDriverHubitat/main/drivers/RM3250ZB_Sinope_Hubitat.groovy",
       "required": false,
-      "version": "1.4.0"
+      "version": "1.5.0"
     },
     {
       "id": "8c77cb17-3fd2-479e-8160-f0abb2b627be",
@@ -52,7 +52,7 @@
       "namespace": "sacua",
       "location": "https://raw.githubusercontent.com/sacua/SinopeDriverHubitat/main/drivers/RM3500ZB_Sinope_Hubitat.groovy",
       "required": false,
-      "version": "1.1.0"
+      "version": "1.1.1"
     }    
   ]
 }

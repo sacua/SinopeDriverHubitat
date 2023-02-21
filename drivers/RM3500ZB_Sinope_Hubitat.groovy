@@ -15,6 +15,7 @@
  * v1.0.1 Remove some bugs
  * v1.0.2 Comestic change in the code and better description
  * v1.1.0 Change reporting, add attributes and improve codes
+ * v1.1.1 Typo
  */
 
 metadata

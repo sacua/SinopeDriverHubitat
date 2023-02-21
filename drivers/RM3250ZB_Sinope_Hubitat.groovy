@@ -16,6 +16,7 @@
  * v1.2.0 Enable debug parse and possible to reset the offset value
  * v1.3.0 Enable custom time for reset and manual reset
  * v1.4.0 Correct typo mistake in Cron Scheduling
+ * V1.5.0 Consistency between driver from RM3500ZB
  */
 
 metadata
