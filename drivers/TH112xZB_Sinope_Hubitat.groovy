@@ -10,7 +10,7 @@
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *	  http://www.apache.org/licenses/LICENSE-2.0
  *
  *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
@@ -23,10 +23,13 @@
  * v1.4.0 Enable debug parse, send event at configure for the supported mode and possible to reset the offset value
  * v1.5.0 Enable custom time for reset and manual reset
  * v1.5.1 Correction of bug for the reset of energy meter
+ * V2.0.0 Use library and add digital temperature offsett
  */
 
+#include sacua.EnergyLibrary
+
 metadata {
-	definition(name: "Thermostat TH112xZB with energy merter", namespace: "sacua", author: "Samuel Cuerrier Auclair") {
+	definition(name: "Thermostat TH112xZB with energy meter - Test", namespace: "sacua", author: "Samuel Cuerrier Auclair") {
 		capability "Thermostat"
 		capability "Configuration"
 		capability "TemperatureMeasurement"
@@ -66,9 +69,10 @@ metadata {
 			input name: "HeatingChange", type: "number", title: "Heating change", description: "Minimum change in the PI heating in % to trigger power and PI heating reporting, 1..25", range: "1..25", defaultValue: 5
 			input name: "energyChange", type: "number", title: "Energy increment", description: "Minimum increment of the energy meter in Wh to trigger energy reporting, 10..*", range: "10..*", defaultValue: 10
 			input name: "energyPrice", type: "float", title: "c/kWh Cost:", description: "Electric Cost per Kwh in cent", range: "0..*", defaultValue: 9.38
+			input name: "tempOffset", type: "float", title: "Digital temperature offset", description: "Digital temperature offset for reading in Celsius", defaultValue: 0
 			input name: "weeklyReset", type: "enum", title: "Weekly reset day", description: "Day on which the weekly energy meter return to 0", options:["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"], defaultValue: "Sunday", multiple: false, required: true
-            input name: "yearlyReset", type: "enum", title: "Yearly reset month", description: "Month on which the yearly energy meter return to 0", options:["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"], defaultValue: "January", multiple: false, required: true
-            input name: "txtEnable", type: "bool", title: "Enable logging info", defaultValue: true
+			input name: "yearlyReset", type: "enum", title: "Yearly reset month", description: "Month on which the yearly energy meter return to 0", options:["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"], defaultValue: "January", multiple: false, required: true
+			input name: "txtEnable", type: "bool", title: "Enable logging info", defaultValue: true
 		}
 
 		fingerprint profileId: "0104", deviceId: "119C", manufacturer: "Sinope Technologies", model: "TH1123ZB", deviceJoinName: "TH1123ZB"
@@ -77,128 +81,100 @@ metadata {
 	}
 }
 
-//-- Installation ----------------------------------------------------------------------------------------
-def installed() {
-	if (txtEnable) log.info "installed() : running configure()"
-	configure()
-	refresh()
-}
-
-def initialize() {
-	if (txtEnable) log.info "installed() : running configure()"
-	configure()
-	refresh()
-}
-
-def updated() {
-	if (txtEnable) log.info "updated() : running configure()"
-	if (!state.updatedLastRanAt || now() >= state.updatedLastRanAt + 5000) {
-		state.updatedLastRanAt = now()
-		configure()
-		refresh()
-	}
-}
-
-def uninstalled() {
-	if (txtEnable) log.info "uninstalled() : unscheduling configure() and reset()"
-	try {    
-		unschedule()
-	} catch (errMsg) {
-		log.info "uninstalled(): Error unschedule() - ${errMsg}"
-	}
-}
-
-      
 //-- Parsing -----------------------------------------------------------------------------------------
-
-// parse events into attributes
-def parse(String description) {
-	if (txtEnable) log.debug "parse - description = ${description}"
-	def result = []
-	def cluster = zigbee.parse(description)
-	if (description?.startsWith("read attr -")) {
-		// log.info description
-		def descMap = zigbee.parseDescriptionAsMap(description)
-		result += createCustomMap(descMap)
-		if(descMap.additionalAttrs){
-			def mapAdditionnalAttrs = descMap.additionalAttrs
-			mapAdditionnalAttrs.each{add ->
-			add.cluster = descMap.cluster
-			result += createCustomMap(add)
-			}
-		}
-	}
-	return result
-}
-
 private createCustomMap(descMap){
 	def result = null
 	def map = [: ]
-	if (descMap.cluster == "0201" && descMap.attrId == "0000") {
-		map.name = "temperature"
-		map.value = getTemperature(descMap.value)
 
-	} else if (descMap.cluster == "0201" && descMap.attrId == "0008") {
-		map.name = "thermostatOperatingState"
-		map.value = getHeatingDemand(descMap.value)
-		def heatingDemandValue = map.value.toInteger()
-		if (device.currentValue("maxPower") != null) {
-			def maxPowerValue = device.currentValue("maxPower").toInteger()
-			def powerValue = Math.round(maxPowerValue*heatingDemandValue/100)
-			sendEvent(name: "power", value: powerValue, unit: "W")
+	if (descMap.cluster == "0201") {
+		switch(descMap.attrId) {
+			case "0000":
+				map.name = "temperature"
+				map.value = getTemperature(descMap.value)
+				map.unit = getTemperatureScale()
+				map.descriptionText = "The tempeature is ${map.value} ${map.unit}"
+				break
+			
+			case "0008":
+				map.name = "thermostatOperatingState"
+				map.value = getHeatingDemand(descMap.value)
+				sendEvent(name: "heatingDemand", value: map.value, unit: "%", descriptionText: "The thermostat is heating at ${map.value}% of its capacity")
+				if (device.currentValue("maxPower") != null) {
+					def maxPowerValue = device.currentValue("maxPower").toInteger()
+					def powerValue = Math.round(maxPowerValue*map.value/100)
+					sendEvent(name: "power", value: powerValue, unit: "W", descriptionText: "The current heating power is ${powerValue} Watts") //The power is not auto reported
+				}
+				map.value = (map.value < 5) ? "idle" : "heating"
+				break
+
+			case "0012":
+				map.name = "heatingSetpoint"
+				map.value = getTemperature(descMap.value)
+				map.unit = getTemperatureScale()
+				map.descriptionText = "The hearing setpoint is ${map.value} ${map.unit}"
+				sendEvent(name: "thermostatSetpoint", value: map.value, unit: getTemperatureScale()) //For interoperability with SharpTools
+				break
+			
+			case "001C":
+				map.name = "thermostatMode"
+				map.value = getModeMap()[descMap.value]
+				break
+			
+			default: // unused
+				//logDebug("unhandled electrical measurement attribute report - cluster ${descMap.cluster} attribute ${descMap.attrId} value ${descMap.value}")
+				break
 		}
-		sendEvent(name: "heatingDemand", value: heatingDemandValue, unit: "%")
-		map.value = (map.value.toInteger() < 5) ? "idle" : "heating"
-
-	} else if (descMap.cluster == "0201" && descMap.attrId == "0012") {
-		map.name = "heatingSetpoint"
-		map.value = getTemperature(descMap.value)
-		sendEvent(name: "thermostatSetpoint", value: map.value, unit: getTemperatureScale()) //For interoperability with SharpTools 
-
-	} else if (descMap.cluster == "0201" && descMap.attrId == "001C") {
-		map.name = "thermostatMode"
-		map.value = getModeMap()[descMap.value]
 
 	} else if (descMap.cluster == "0204" && descMap.attrId == "0001") {
 		map.name = "lock"
 		map.value = getLockMap()[descMap.value]
 
-	} else if (descMap.cluster == "0B04" && descMap.attrId == "050B") {
-		map.name = "power"
-		map.value = getActivePower(descMap.value)
-		map.unit = "W"
-
-	} else if (descMap.cluster == "0B04" && descMap.attrId == "050D") {
-		map.name = "maxPower"
-		map.value = getActivePower(descMap.value)
-		map.unit = "W"
+	} else if (descMap.cluster == "0B04") {
+		switch(descMap.attrId) {
+			case "050B":
+				map.name = "power"
+				map.value = getActivePower(descMap.value)
+				map.unit = "W"
+				map.descriptionText = "The current heating power is ${powerValue} Watts"
+				break
+			
+			case "050D":
+				map.name = "maxPower"
+				map.value = getActivePower(descMap.value)
+				map.unit = "W"
+				map.descriptionText = "The maximum heating power is ${powerValue} Watts"
+				break
+			
+			default: // unused
+				//logDebug("unhandled electrical measurement attribute report - cluster ${descMap.cluster} attribute ${descMap.attrId} value ${descMap.value}")
+				break
+		}
 
 	} else if (descMap.cluster == "0702" && descMap.attrId == "0000") {
 		state.energyValue = getEnergy(descMap.value) as BigInteger
 		runIn(2,"energyCalculation")
 	}
-        
+		
 	if (map) {
 		def isChange = isStateChange(device, map.name, map.value.toString())
 		map.displayed = isChange
-		if ((map.name.toLowerCase().contains("temp")) || (map.name.toLowerCase().contains("setpoint"))) {
-			map.scale = scale
-		}
+		logDebug("event map : ${map}")
+		if (map.descriptionText) logInfo("${map.descriptionText}")
 		result = createEvent(map)
 	}
-    return result
+	return result
 }
-            
+			
 //-- Capabilities -----------------------------------------------------------------------------------------
 
-def configure(){    
-	if (txtEnable) log.info "configure()"    
+def configure(){	
+	if (txtEnable) log.info "configure()"	
 	// Set unused default values
 	sendEvent(name: "coolingSetpoint", value:getTemperature("0BB8")) // 0x0BB8 =  30 Celsius
 	sendEvent(name: "thermostatFanMode", value:"auto") // We dont have a fan, so auto it is
 	updateDataValue("lastRunningMode", "heat") // heat is the only compatible mode for this device
 	sendEvent(name: "supportedThermostatModes", value:  "[\"off\", \"heat\"]") //We set the supported thermostat mode
-    	sendEvent(name: "supportedThermostatFanModes", value:  "[\"auto\"]") //We set the supported thermostat mode
+	sendEvent(name: "supportedThermostatFanModes", value:  "[\"auto\"]") //We set the supported thermostat mode
 
 	try
 	{
@@ -219,75 +195,9 @@ def configure(){
 	timemin = Math.abs( new Random().nextInt() % 59) 
 	timehour = Math.abs( new Random().nextInt() % 23) 
 	schedule(timesec + " " + timemin + " " + timehour + " * * ? *", refreshMaxPower) //refresh maximum power capacity of the equipement wired to the thermostat one time per day at a random moment
-    
-    if (weeklyReset == null)
-        weeklyReset = "Sunday" as String
-    if (yearlyReset == null)
-        yearlyReset = "January" as String
-
-    switch (yearlyReset) {
-        case "January" :
-            schedule("0 0 0 1 1 ? *", resetYearlyEnergy)
-            break
-        case "February" :
-            schedule("0 0 0 1 2 ? *", resetYearlyEnergy)
-            break
-        case "March" :
-            schedule("0 0 0 1 3 ? *", resetYearlyEnergy)
-            break
-        case "April" :
-            schedule("0 0 0 1 4 ? *", resetYearlyEnergy)
-            break
-        case "May" :
-            schedule("0 0 0 1 5 ? *", resetYearlyEnergy)
-            break
-        case "June" :
-            schedule("0 0 0 1 6 ? *", resetYearlyEnergy)
-            break
-        case "July" :
-            schedule("0 0 0 1 7 ? *", resetYearlyEnergy)
-            break
-        case "August" :
-            schedule("0 0 0 1 8 ? *", resetYearlyEnergy)
-            break
-        case "September" :
-            schedule("0 0 0 1 9 ? *", resetYearlyEnergy)
-            break
-        case "October" :
-            schedule("0 0 0 1 10 ? *", resetYearlyEnergy)
-            break
-        case "November" :
-            schedule("0 0 0 1 11 ? *", resetYearlyEnergy)
-            break
-        case "December" :
-            schedule("0 0 0 1 12 ? *", resetYearlyEnergy)
-            break
-    }
-
-    switch (weeklyReset) {
-        case "Sunday" :
-            schedule("0 0 0 ? * 1 *", resetWeeklyEnergy)
-            break
-        case "Monday" :
-            schedule("0 0 0 ? * 2 *", resetWeeklyEnergy)
-            break
-        case "Tuesday" :
-            schedule("0 0 0 ? * 3 *", resetWeeklyEnergy)
-            break
-        case "Wednesday" :
-            schedule("0 0 0 ? * 4 *", resetWeeklyEnergy)
-            break
-        case "Thursday" :
-            schedule("0 0 0 ? * 5 *", resetWeeklyEnergy)
-            break
-        case "Friday" :
-            schedule("0 0 0 ? * 6 *", resetWeeklyEnergy)
-            break
-        case "Saturday" :
-            schedule("0 0 0 ? * 7 *", resetWeeklyEnergy)
-            break
-    }
-    
+	
+	energySchedule()
+	
 	// Prepare our zigbee commands
 	def cmds = []
 
@@ -302,16 +212,16 @@ def configure(){
 	cmds += zigbee.configureReporting(0x0201, 0x0000, 0x29, 30, 580, (int) tempChange)  //local temperature
 	cmds += zigbee.configureReporting(0x0201, 0x0008, 0x0020, 59, 590, (int) HeatingChange) //PI heating demand
 	cmds += zigbee.configureReporting(0x0702, 0x0000, DataType.UINT48, 59, 1799, (int) energyChange) //Energy reading
-	cmds += zigbee.configureReporting(0x0201, 0x0012, 0x0029, 15, 302, 40)   //occupied heating setpoint    
-	cmds += zigbee.configureReporting(0x0204, 0x0000, 0x30, 1, 0)            //temperature display mode
-	cmds += zigbee.configureReporting(0x0204, 0x0001, 0x30, 1, 0)            //keypad lockout
+	cmds += zigbee.configureReporting(0x0201, 0x0012, 0x0029, 15, 302, 40)   //occupied heating setpoint	
+	cmds += zigbee.configureReporting(0x0204, 0x0000, 0x30, 1, 0)			//temperature display mode
+	cmds += zigbee.configureReporting(0x0204, 0x0001, 0x30, 1, 0)			//keypad lockout
 
 	
 	// Configure displayed scale
 	if (getTemperatureScale() == 'C') {
-		cmds += zigbee.writeAttribute(0x0204, 0x0000, 0x30, 0)    // Wr °C on thermostat display
+		cmds += zigbee.writeAttribute(0x0204, 0x0000, 0x30, 0)	// Wr °C on thermostat display
 	} else {
-		cmds += zigbee.writeAttribute(0x0204, 0x0000, 0x30, 1)    // Wr °F on thermostat display 
+		cmds += zigbee.writeAttribute(0x0204, 0x0000, 0x30, 1)	// Wr °F on thermostat display 
 	}
 
 	// Configure Outdoor Weather
@@ -335,124 +245,6 @@ def configure(){
 	if (cmds)
 		sendZigbeeCommands(cmds) // Submit zigbee commands
 	return
-}
-
-def resetEnergyOffset(text) {
-    if (text != null) {
-	    BigInteger newOffset = text.toBigInteger()
-	    state.dailyEnergy = state.dailyEnergy - state.offsetEnergy + newOffset
-	    state.weeklyEnergy = state.weeklyEnergy - state.offsetEnergy + newOffset
-	    state.monthlyEnergy = state.monthlyEnergy - state.offsetEnergy + newOffset
-        state.yearlyEnergy = state.yearlyEnergy - state.offsetEnergy + newOffset
-	    state.offsetEnergy = newOffset
-        float totalEnergy = (state.energyValue + state.offsetEnergy)/1000
-        sendEvent(name: "energy", value: totalEnergy, unit: "kWh")
-	    runIn(2,energyCalculation)
-	    runIn(2,energySecCalculation)
-    }
-}
-
-def energyCalculation() {
-	if (state.offsetEnergy == null)
-		state.offsetEnergy = 0 as BigInteger
-	if (state.dailyEnergy == null)
-		state.dailyEnergy = state.energyValue as BigInteger
-	if (device.currentValue("energy") == null)
-		sendEvent(name: "energy", value: 0, unit: "kWh")
-	if (energyPrice == null)
-		energyPrice = 9.38 as float
-	
-	if (state.energyValue + state.offsetEnergy < device.currentValue("energy")*1000) { //Although energy are parse as BigInteger, sometimes (like 1 times per month during heating  time) the value received is lower than the precedent but not zero..., so we define a new offset when that happen
-		BigInteger newOffset = device.currentValue("energy")*1000 - state.energyValue as BigInteger
-		if (newOffset < 1e10) //Sometimes when the hub boot, the offset is very large... too large
-		    state.offsetEnergy = newOffset
-	    }
-
-	float dailyEnergy = roundTwoPlaces((state.energyValue + state.offsetEnergy - state.dailyEnergy)/1000)
-	float totalEnergy = (state.energyValue + state.offsetEnergy)/1000
-	localCostPerKwh = energyPrice as float
-	float dailyCost = roundTwoPlaces(dailyEnergy*localCostPerKwh/100)
-
-	sendEvent(name: "dailyEnergy", value: dailyEnergy, unit: "kWh")
-	sendEvent(name: "dailyCost", value: dailyCost, unit: "\$")
-	sendEvent(name: "energy", value: totalEnergy, unit: "kWh")
-}
-
-def energySecCalculation() { //This one is performed every hour to not overwhelm the number of events which will create a warning in hubitat main page
-	if (state.weeklyEnergy == null)
-		state.weeklyEnergy = state.energyValue as BigInteger
-	if (state.monthlyEnergy == null)
-		state.monthlyEnergy = state.energyValue as BigInteger
-	if (state.yearlyEnergy == null)
-		state.yearlyEnergy = state.energyValue as BigInteger
-	if (energyPrice == null)
-		energyPrice = 9.38 as float
-			
-	float weeklyEnergy = roundTwoPlaces((state.energyValue + state.offsetEnergy - state.weeklyEnergy)/1000)
-	float monthlyEnergy = roundTwoPlaces((state.energyValue + state.offsetEnergy - state.monthlyEnergy)/1000)
-	float yearlyEnergy = roundTwoPlaces((state.energyValue + state.offsetEnergy - state.yearlyEnergy)/1000)
-	float totalEnergy = (state.energyValue + state.offsetEnergy)/1000
-
-	localCostPerKwh = energyPrice as float
-	float weeklyCost = roundTwoPlaces(weeklyEnergy*localCostPerKwh/100)
-	float monthlyCost = roundTwoPlaces(monthlyEnergy*localCostPerKwh/100)
-	float yearlyCost = roundTwoPlaces(yearlyEnergy*localCostPerKwh/100)
-	float totalCost = roundTwoPlaces(totalEnergy*localCostPerKwh/100)
-
-	sendEvent(name: "weeklyEnergy", value: weeklyEnergy, unit: "kWh")
-	sendEvent(name: "monthlyEnergy", value: monthlyEnergy, unit: "kWh")
-	sendEvent(name: "yearlyEnergy", value: yearlyEnergy, unit: "kWh")
-
-	sendEvent(name: "weeklyCost", value: weeklyCost, unit: "\$")
-	sendEvent(name: "monthlyCost", value: monthlyCost, unit: "\$")
-	sendEvent(name: "yearlyCost", value: yearlyCost, unit: "\$")
-	sendEvent(name: "cost", value: totalCost, unit: "\$")      
-    
-}
-
-def resetDailyEnergy() {
-	state.dailyEnergy = state.energyValue + state.offsetEnergy
-    if (energyPrice == null)
-        energyPrice = 9.38 as float
-    localCostPerKwh = energyPrice as float
-    float dailyEnergy = roundTwoPlaces((state.energyValue + state.offsetEnergy - state.dailyEnergy)/1000)
-	float dailyCost = roundTwoPlaces(dailyEnergy*localCostPerKwh/100)
-    sendEvent(name: "dailyEnergy", value: dailyEnergy, unit: "kWh")
-	sendEvent(name: "dailyCost", value: dailyCost, unit: "\$")
-    
-}
-
-def resetWeeklyEnergy() {
-	state.weeklyEnergy = state.energyValue + state.offsetEnergy
-    if (energyPrice == null)
-        energyPrice = 9.38 as float
-    localCostPerKwh = energyPrice as float
-    float weeklyEnergy = roundTwoPlaces((state.energyValue + state.offsetEnergy - state.weeklyEnergy)/1000)
-	float weeklyCost = roundTwoPlaces(weeklyEnergy*localCostPerKwh/100)
-    sendEvent(name: "weeklyEnergy", value: weeklyEnergy, unit: "kWh")
-	sendEvent(name: "weeklyCost", value: weeklyCost, unit: "\$")
-}
-
-def resetMonthlyEnergy() {
-	state.monthlyEnergy = state.energyValue + state.offsetEnergy
-    if (energyPrice == null)
-        energyPrice = 9.38 as float
-    localCostPerKwh = energyPrice as float
-    float monthlyEnergy = roundTwoPlaces((state.energyValue + state.offsetEnergy - state.monthlyEnergy)/1000)
-	float monthlyCost = roundTwoPlaces(monthlyEnergy*localCostPerKwh/100)
-    sendEvent(name: "monthlyEnergy", value: monthlyEnergy, unit: "kWh")
-	sendEvent(name: "monthlyCost", value: monthlyCost, unit: "\$")
-}
-
-def resetYearlyEnergy() {
-	state.yearlyEnergy = state.energyValue + state.offsetEnergy
-    if (energyPrice == null)
-        energyPrice = 9.38 as float
-    localCostPerKwh = energyPrice as float
-    float yearlyEnergy = roundTwoPlaces((state.energyValue + state.offsetEnergy - state.yearlyEnergy)/1000)
-	float yearlyCost = roundTwoPlaces(yearlyEnergy*localCostPerKwh/100)
-    sendEvent(name: "yearlyEnergy", value: yearlyEnergy, unit: "kWh")
-	sendEvent(name: "yearlyCost", value: yearlyCost, unit: "\$")
 }
 
 def refresh() {
@@ -489,7 +281,7 @@ def refreshMaxPower() {
 }
 
 def refreshTime() {
-	def cmds=[]    
+	def cmds=[]	
 	// Time
 	def thermostatDate = new Date();
 	def thermostatTimeSec = thermostatDate.getTime() / 1000;
@@ -565,7 +357,7 @@ def off() {
 	cmds += zigbee.readAttribute(0x0201, 0x001C)
 	
 	// Submit zigbee commands
-	sendZigbeeCommands(cmds)    
+	sendZigbeeCommands(cmds)	
 }
 
 def setCoolingSetpoint(degrees) {
@@ -584,10 +376,10 @@ def Setpoint() {
 	if (state.setPoint != device.currentValue("heatingSetpoint")) {
 		runIn(30, "Setpoint")
 		def temperatureScale = getTemperatureScale()
-		def degrees = state.setPoint
-		def cmds = []        
+		def degrees = state.setPoint - tempOffset
+		def cmds = []		
 
-		if (txtEnable) log.info "setHeatingSetpoint(${degrees}:${temperatureScale})"
+		if (txtEnable) log.info "setHeatingSetpoint(${state.setPoint}:${temperatureScale})"
 
 		def celsius = (temperatureScale == "C") ? degrees as Float : (fahrenheitToCelsius(degrees) as Float).round(2)
 		int celsius100 = Math.round(celsius * 100)
@@ -639,94 +431,27 @@ def lock() {
 }
 
 def deviceNotification(text) {
-    if (text != null) {
-        double outdoorTemp = text.toDouble()
-        def cmds = []
+	if (text != null) {
+		double outdoorTemp = text.toDouble()
+		def cmds = []
 
-        if (prefDisplayOutdoorTemp) {
-            if (txtEnable) log.info "deviceNotification() : Received outdoor weather : ${text} : ${outdoorTemp}"
+		if (prefDisplayOutdoorTemp) {
+			if (txtEnable) log.info "deviceNotification() : Received outdoor weather : ${text} : ${outdoorTemp}"
 
-            sendEvent(name: "outdoorTemp", value: outdoorTemp, unit: getTemperatureScale())
-            //the value sent to the thermostat must be in C
-            if (getTemperatureScale() == 'F') {    
-                outdoorTemp = fahrenheitToCelsius(outdoorTemp).toDouble()
-            }       
+			sendEvent(name: "outdoorTemp", value: outdoorTemp, unit: getTemperatureScale())
+			//the value sent to the thermostat must be in C
+			if (getTemperatureScale() == 'F') {	
+				outdoorTemp = fahrenheitToCelsius(outdoorTemp).toDouble()
+			}	   
 
-            int outdoorTempDevice = outdoorTemp*100
-            cmds += zigbee.writeAttribute(0xFF01, 0x0011, 0x21, 10800)   //set the outdoor temperature timeout to 3 hours
-            cmds += zigbee.writeAttribute(0xFF01, 0x0010, 0x29, outdoorTempDevice, [mfgCode: "0x119C"]) //set the outdoor temperature as integer
+			int outdoorTempDevice = outdoorTemp*100
+			cmds += zigbee.writeAttribute(0xFF01, 0x0011, 0x21, 10800)   //set the outdoor temperature timeout to 3 hours
+			cmds += zigbee.writeAttribute(0xFF01, 0x0010, 0x29, outdoorTempDevice, [mfgCode: "0x119C"]) //set the outdoor temperature as integer
 
-            // Submit zigbee commands    
-            sendZigbeeCommands(cmds)
-        } else {
-            if (txtEnable) log.info "deviceNotification() : Not setting any outdoor weather, since feature is disabled."  
-        }
-    }
-}
-
-//-- Private functions -----------------------------------------------------------------------------------
-private void sendZigbeeCommands(cmds) {
-	cmds.removeAll { it.startsWith("delay") }
-	def hubAction = new hubitat.device.HubMultiAction(cmds, hubitat.device.Protocol.ZIGBEE)
-	sendHubCommand(hubAction)
-}
-
-private getTemperature(value) {
-	if (value != null) {
-		def celsius = Integer.parseInt(value, 16) / 100
-		if (getTemperatureScale() == "C") {
-			return celsius
-		}
-		else {
-			return Math.round(celsiusToFahrenheit(celsius))
+			// Submit zigbee commands	
+			sendZigbeeCommands(cmds)
+		} else {
+			if (txtEnable) log.info "deviceNotification() : Not setting any outdoor weather, since feature is disabled."  
 		}
 	}
-}
-
-private getModeMap() {
-	[
-		"00": "off",
-		"04": "heat"
-	]
-}
-
-private getLockMap() {
-	[
-		"00": "unlocked ",
-		"01": "locked ",
-	]
-}
-
-private getActivePower(value) {
-	if (value != null) {
-	def activePower = Integer.parseInt(value, 16)
-	return activePower
-	}
-}
-
-private getEnergy(value) {
-	if (value != null) {
-		BigInteger EnergySum = new BigInteger(value,16)
-		return EnergySum
-	}
-}
-
-private getTemperatureScale() {
-	return "${location.temperatureScale}"
-}
-
-private getHeatingDemand(value) {
-	if (value != null) {
-		def demand = Integer.parseInt(value, 16)
-		return demand.toString()
-	}
-}
-
-private roundTwoPlaces(val) {
-	return Math.round(val * 100) / 100
-}
-
-private hex(value) {
-	String hex = new BigInteger(Math.round(value).toString()).toString(16)
-	return hex
 }
