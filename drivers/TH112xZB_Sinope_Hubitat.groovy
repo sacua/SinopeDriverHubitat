@@ -519,6 +519,10 @@ def refreshTime() {
 		sendZigbeeCommands(cmds)
 }
 
+def setClockTime() {
+    refreshTime()
+}
+
 def displayOn() {
     setBacklightMode("on")
 }
