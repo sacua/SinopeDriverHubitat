@@ -23,6 +23,7 @@
  * v1.4.0 Enable debug parse, send event at configure for the supported mode and possible to reset the offset value
  * v1.5.0 Enable custom time for reset and manual reset
  * v1.5.1 Correction of bug for the reset of energy meter
+ * v1.6.0 fix backlight control for G2 thermostat
  */
 
 metadata {
