@@ -7,7 +7,7 @@ library (
  documentationLink: "https://community.hubitat.com/t/release-sinope-device-drivers-with-advanced-functionality/91960"
 )
 
-// UPDATE TEST
+// UPDATE TEST2
 //-- Installation ----------------------------------------------------------------------------------------
 def installed() {
 	if (txtEnable) log.info "installed() : running configure()"
