@@ -355,7 +355,7 @@ def configure(){
 	}
 
     // Configure thermostat cycle time (useful for fan-forced heaters, e.g. kickspace or bathroom heaters)
-    runIn(1, setThermostatCycle)
+    runIn(1, "setThermostatCycle")
 
 	if (cmds)
 		sendZigbeeCommands(cmds) // Submit zigbee commands
@@ -667,7 +667,7 @@ def deviceNotification(text) {
     if (text != null) {
         double outdoorTemp = text.toDouble()
         def updateDescriptionText = "Received outdoor weather report : ${outdoorTemp} ${getTemperatureScale()}"
-        sendEvent(name: "outdoorTemp", value: outdoorTemp, unit: getTemperatureScale(), updateDescriptionText)
+        sendEvent(name: "outdoorTemp", value: outdoorTemp, unit: getTemperatureScale(), descriptionText: updateDescriptionText)
         if (txtEnable) log.info(updateDescriptionText) // TODO : should be done in createCustomMap() for all events with descriptionText
 
         // the value sent to the thermostat must be in C
