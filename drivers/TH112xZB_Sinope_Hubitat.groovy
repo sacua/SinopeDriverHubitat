@@ -24,6 +24,7 @@
  * v1.5.0 Enable custom time for reset and manual reset
  * v1.5.1 Correction of bug for the reset of energy meter
  * v1.6.0 fix backlight control for G2 thermostat
+ * v1.7.0 Adding cycle length control
  */
 
 metadata {
@@ -66,6 +67,7 @@ metadata {
             input name: "prefBacklightMode", type: "enum", title: "Display backlight", options: ["off": "On Demand", "adaptive": "Adaptive (default)", "on": "Always On"], defaultValue: "adaptive", required: true, submitOnChange: true
             input name: "prefSecondTempDisplay", type: "enum", title: "Secondary Temp. Display", options:["auto": "Auto", "setpoint": "Setpoint (default)", "outdoor": "Outdoor"], defaultValue: "setpoint", required: true, submitOnChange: true
 			input name: "prefTimeFormatParam", type: "enum", title: "Time Format", options:["24h", "12h AM/PM"], defaultValue: "24h", multiple: false, required: true
+            input name: "prefCycleLength", type: "enum", title: "Thermostat Cycle Length", options: ["short","long"], defaultValue: "short", multiple: false, required: true
 			input name: "tempChange", type: "number", title: "Temperature change", description: "Minumum change of temperature reading to trigger report in Celsius/100, 5..50", range: "5..50", defaultValue: 50
 			input name: "HeatingChange", type: "number", title: "Heating change", description: "Minimum change in the PI heating in % to trigger power and PI heating reporting, 1..25", range: "1..25", defaultValue: 5
 			input name: "energyChange", type: "number", title: "Energy increment", description: "Minimum increment of the energy meter in Wh to trigger energy reporting, 10..*", range: "10..*", defaultValue: 10
@@ -92,6 +94,8 @@ import groovy.transform.Field
                                                  0x2: "off", 0x0: "adaptive", 0x1: "on" ]
 @Field static final Map constSecondTempDisplayModes =  [ 0x0 : "auto", 0x01: "setpoint", 0x02: "outdoor",
                                                         "auto": 0x0, "setpoint": 0x1, "outdoor": 0x2 ]
+@Field static final Map constThermostatCycles = [ "short": 0x000F, "long": 0x0384,
+                                                 0x000F: "short", 0x0384: "long"]
 
 
 //-- Installation ----------------------------------------------------------------------------------------
@@ -350,6 +354,9 @@ def configure(){
 		if(txtEnable) log.info "Set to 24h"
 		cmds += zigbee.writeAttribute(0xFF01, 0x0114, 0x30, 0x0000)
 	}
+
+    // Configure thermostat cycle time (useful for fan-forced heaters, e.g. kickspace or bathroom heaters)
+    runIn(1, "setThermostatCycle")
 
 	if (cmds)
 		sendZigbeeCommands(cmds) // Submit zigbee commands
@@ -660,12 +667,12 @@ def lock() {
 def deviceNotification(text) {
     if (text != null) {
         double outdoorTemp = text.toDouble()
-
-        log.debug "deviceNotification() : Received outdoor weather report : ${outdoorTemp} ${getTemperatureScale()}"
-        sendEvent(name: "outdoorTemp", value: outdoorTemp, unit: getTemperatureScale())
+        def updateDescriptionText = "Received outdoor weather report : ${outdoorTemp} ${getTemperatureScale()}"
+        sendEvent(name: "outdoorTemp", value: outdoorTemp, unit: getTemperatureScale(), descriptionText: updateDescriptionText)
+        if (txtEnable) log.info(updateDescriptionText) // TODO : should be done in createCustomMap() for all events with descriptionText
 
         // the value sent to the thermostat must be in C
-        // TODO: check if this is necessary - thermostat and hub should be configured the same...
+        // TODO - nothing enforces the temperature scale of the notification event (doesn't have units) - check?
         if (getTemperatureScale() == 'F') {
             outdoorTemp = fahrenheitToCelsius(outdoorTemp).toDouble()
         }
@@ -673,8 +680,6 @@ def deviceNotification(text) {
         def int outdoorTempDevice = outdoorTemp*100  // device expects hundredths
         def cmds = []
         cmds += zigbee.writeAttribute(0xFF01, 0x0010, DataType.INT16, outdoorTempDevice, [mfgCode: "0x119C"]) //set the outdoor temperature as integer
-
-        // Submit zigbee commands
         sendZigbeeCommands(cmds)
     }
 }
@@ -780,4 +785,15 @@ private setSecondTempDisplay(mode = prefSecondTempDisplay) {
 
 private isG2Model() {
     device.getDataValue("model").contains("-G2")
+}
+
+private setThermostatCycle(cycle = prefCycleLength) {
+    def int shortCycleAttr = constThermostatCycles[cycle]
+    if (shortCycleAttr != null) {
+        log.debug("setting thermostat cycle to ${cycle} (${shortCycleAttr})")
+        device.updateSetting("prefCycleLength",[value: cycle, type: "enum"])
+        def cmds = []
+        cmds += zigbee.writeAttribute(0x0201, 0x0401, DataType.UINT16, shortCycleAttr, [mfgCode: "0x119C"])
+        sendZigbeeCommands(cmds)
+    }
 }
