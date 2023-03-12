@@ -24,6 +24,7 @@
  * v1.5.0 Enable custom time for reset and manual reset
  * v1.5.1 Correction of bug for the reset of energy meter
  * v1.6.0 fix backlight control for G2 thermostat
+ * v1.7.0 Adding cycle length control
  */
 
 metadata {
