@@ -1,4 +1,4 @@
-/**
+ /**
  *  Sinope TH1123ZB, TH1124ZB Device Driver for Hubitat
  *  Source: https://raw.githubusercontent.com/sacua/SinopeDriverHubitat/main/drivers/TH112xZB_Sinope_Hubitat.groovy
  *
@@ -25,6 +25,7 @@
  * v1.5.1 Correction of bug for the reset of energy meter
  * v1.6.0 fix backlight control for G2 thermostat
  * v1.7.0 Adding cycle length control
+ * v1.7.1 Correction of bug regarding logging debug and info
  */
 
 metadata {
@@ -75,6 +76,7 @@ metadata {
 			input name: "weeklyReset", type: "enum", title: "Weekly reset day", description: "Day on which the weekly energy meter return to 0", options:["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"], defaultValue: "Sunday", multiple: false, required: true
             input name: "yearlyReset", type: "enum", title: "Yearly reset month", description: "Month on which the yearly energy meter return to 0", options:["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"], defaultValue: "January", multiple: false, required: true
             input name: "txtEnable", type: "bool", title: "Enable logging info", defaultValue: true
+			input name: "debugOutput", type: "bool", title: "Enable debug logging", description: "<br>", defaultValue: true
 		}
 
         fingerprint profileId: "0104", endpointId: "01", inClusters: "0000,0003,0004,0005,0201,0204,0402,0702,0B04,0B05,FF01", outClusters: "000A,FF01,0019", model: "TH1123ZB", manufacturer: "Sinope Technologies", deviceJoinName: "Sinope Thermostat TH1123ZB"
@@ -125,7 +127,7 @@ def uninstalled() {
 	try {
 		unschedule()
 	} catch (errMsg) {
-		log.info "uninstalled(): Error unschedule() - ${errMsg}"
+		if (debugOutput) log.debug "uninstalled(): Error unschedule() - ${errMsg}"
 	}
 }
 
@@ -134,7 +136,7 @@ def uninstalled() {
 
 // parse events into attributes
 def parse(String description) {
-	if (txtEnable) log.debug "parse - description = ${description}"
+	if (debugOutput) log.debug "parse - description = ${description}"
 	def result = []
 	def cluster = zigbee.parse(description)
 	if (description?.startsWith("read attr -")) {
@@ -336,9 +338,13 @@ def configure(){
 	}
 
     // Configure display mode
+	if (prefBacklightMode == null)
+		prefBacklightMode = "adaptive" as String
     runIn(1, "setBacklightMode")
 
     // Configure secondary display
+	if (prefSecondTempDisplay == null)
+		prefSecondTempDisplay = "setpoint" as String
     runIn(1, "setSecondTempDisplay")
 
     // Configure Outdoor Weather parameters
@@ -356,6 +362,8 @@ def configure(){
 	}
 
     // Configure thermostat cycle time (useful for fan-forced heaters, e.g. kickspace or bathroom heaters)
+	if (prefCycleLength == null)
+		prefCycleLength = "short" as String
     runIn(1, "setThermostatCycle")
 
 	if (cmds)
@@ -763,7 +771,7 @@ private setBacklightMode(mode = prefBacklightMode) {
         return
     }
 
-    log.debug("setting display backlight to ${mode} (${backlightModeAttr})")
+    if (debugOutput) log.debug("setting display backlight to ${mode} (${backlightModeAttr})")
     device.updateSetting("prefBacklightMode",[value: mode, type: "enum"])
     def cmds = []
     cmds += zigbee.writeAttribute(0x0201, 0x0402, DataType.ENUM8, backlightModeAttr, [mfgCode: "0x119C"])
@@ -773,7 +781,7 @@ private setBacklightMode(mode = prefBacklightMode) {
 private setSecondTempDisplay(mode = prefSecondTempDisplay) {
     def BigInteger secondDisplaySetting = constSecondTempDisplayModes[mode]
     if (secondDisplaySetting != null) {
-        log.debug("setting secondary temperature display to ${mode} (${secondDisplaySetting})")
+        if (debugOutput) log.debug("setting secondary temperature display to ${mode} (${secondDisplaySetting})")
         device.updateSetting("prefSecondTempDisplay",[value: mode, type: "enum"])
         def cmds = []
         cmds += zigbee.writeAttribute(0xFF01, 0x0012, DataType.ENUM8, secondDisplaySetting, [mfgCode: "0x119C"])
@@ -790,7 +798,7 @@ private isG2Model() {
 private setThermostatCycle(cycle = prefCycleLength) {
     def int shortCycleAttr = constThermostatCycles[cycle]
     if (shortCycleAttr != null) {
-        log.debug("setting thermostat cycle to ${cycle} (${shortCycleAttr})")
+        if (debugOutput) log.debug("setting thermostat cycle to ${cycle} (${shortCycleAttr})")
         device.updateSetting("prefCycleLength",[value: cycle, type: "enum"])
         def cmds = []
         cmds += zigbee.writeAttribute(0x0201, 0x0401, DataType.UINT16, shortCycleAttr, [mfgCode: "0x119C"])
