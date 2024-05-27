@@ -221,7 +221,7 @@ def configure(){
 	sendEvent(name: "thermostatFanMode", value:"auto") // We dont have a fan, so auto it is
 	updateDataValue("lastRunningMode", "heat") // heat is the only compatible mode for this device
 	sendEvent(name: "supportedThermostatModes", value:  "[\"off\", \"heat\"]") //We set the supported thermostat mode
-    	sendEvent(name: "supportedThermostatFanModes", value:  "[\"auto\"]") //We set the supported thermostat mode
+    sendEvent(name: "supportedThermostatFanModes", value:  "[\"auto\"]") //We set the supported thermostat mode
 
 	try
 	{
