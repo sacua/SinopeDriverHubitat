@@ -11,17 +11,17 @@
         "id": "d2e8c10a-3f7b-4a5c-b9fd-ec5720afc33b",
         "name": "EnergyLibrary",
         "namespace": "sacua",
-        "location": ""
+        "location": "https://raw.githubusercontent.com/sacua/SinopeDriverHubitat/refs/heads/dev/temp/library.groovy",
         "required": true,
         "version": "1.0.0"
     }
-  ]
+  ],
   "drivers": [
     {
       "id": "a3f7d91b-5b2c-437e-8e3a-df9250bdc11f",
       "name": "Thermostat TH112xZB with energy meter - Test",
       "namespace": "sacua",
-      "location": "https://raw.githubusercontent.com/sacua/SinopeDriverHubitat/main/drivers/TH112xZB_Sinope_Hubitat.groovy",
+      "location": "https://raw.githubusercontent.com/sacua/SinopeDriverHubitat/refs/heads/dev/temp/Thermostat.groovy",
       "required": false,
       "version": "1.7.1"
     }
