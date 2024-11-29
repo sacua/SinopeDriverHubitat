@@ -1,6 +1,6 @@
  /**
  *  Sinope TH1123ZB, TH1124ZB Device Driver for Hubitat
- *  Source: https://raw.githubusercontent.com/sacua/SinopeDriverHubitat/main/drivers/TH112xZB_Sinope_Hubitat.groovy
+ *  Source: https://raw.githubusercontent.com/sacua/SinopeDriverHubitat/main/drivers/mergeDrivers/TH112xZB_Sinope_Hubitat.groovy
  *
  *  Code derived from Sinope's SmartThing thermostat for their Zigbee protocol requirements and from the driver of scoulombe79 and kris2k2
  *  Source: https://support.sinopetech.com/en/wp-content/uploads/sites/4/2019/08/Sinope-Technologies-Zigbee-Thermostat-V.1.0.0-SVN-547-1.txt
@@ -38,7 +38,7 @@ metadata {
         capability "Lock"
         capability "PowerMeter"
         capability "EnergyMeter"
-        capability "TemperatureMeasurement"
+        capability "CurrentMeter"
         capability "VoltageMeasurement"
         capability "Notification" // Receiving temperature notifications via RuleEngine
 

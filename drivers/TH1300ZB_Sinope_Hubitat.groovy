@@ -1,6 +1,6 @@
 /**
  *  Sinope TH1300ZB Device Driver for Hubitat
- *  Source: https://github.com/sacua/SinopeDriverHubitat/blob/main/drivers/TH1300ZB_Sinope_Hubitat.groovy
+ *  Source: https://github.com/sacua/SinopeDriverHubitat/blob/main/drivers/mergeDrivers/TH1300ZB_Sinope_Hubitat.groovy
  *
  *  Code derived from Sinope's SmartThing thermostat for their Zigbee protocol requirements, from the driver of erilaj and from the TH112xZB driver
  *  Source: https://www.sinopetech.com/wp-content/uploads/2019/03/Sinope-Technologies-TH1300ZB-V.1.0.5-SVN-503.txt
@@ -38,7 +38,7 @@ metadata
         capability "Lock"
         capability "PowerMeter"
         capability "EnergyMeter"
-        capability "TemperatureMeasurement"
+        capability "CurrentMeter"
         capability "VoltageMeasurement"
         capability "Notification" // Receiving temperature notifications via RuleEngine
         

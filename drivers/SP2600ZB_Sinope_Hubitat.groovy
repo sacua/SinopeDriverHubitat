@@ -1,6 +1,6 @@
 /**
  *  Sinope TH1123ZB, TH1124ZB Device Driver for Hubitat
- *  Source: https://github.com/sacua/SinopeDriverHubitat/blob/main/drivers/RM3250ZB_Sinope_Hubitat.groovy
+ *  Source: https://github.com/sacua/SinopeDriverHubitat/blob/main/drivers/mergeDrivers/RM3250ZB_Sinope_Hubitat.groovy
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
@@ -28,7 +28,7 @@ metadata
         capability "Outlet"
         capability "PowerMeter"
         capability "EnergyMeter"
-        capability "TemperatureMeasurement"
+        capability "CurrentMeter"
         capability "VoltageMeasurement"
         capability "Flash"
          

@@ -1,6 +1,6 @@
 /**
  *  Sinope RM3500ZB Water heater controller Driver for Hubitat
- *  Source: https://github.com/sacua/SinopeDriverHubitat/blob/main/drivers/RM3500ZB_Sinope_Hubitat.groovy
+ *  Source: https://github.com/sacua/SinopeDriverHubitat/blob/main/drivers/mergeDrivers/RM3500ZB_Sinope_Hubitat.groovy
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
@@ -30,6 +30,7 @@ metadata
         capability "PowerMeter"
         capability "EnergyMeter"
         capability "TemperatureMeasurement"
+        capability "CurrentMeter"
         capability "VoltageMeasurement"
         capability "WaterSensor"
 

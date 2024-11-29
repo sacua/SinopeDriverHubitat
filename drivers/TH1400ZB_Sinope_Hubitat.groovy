@@ -1,6 +1,6 @@
 /**
  *  Sinope TH1400ZB Device Driver for Hubitat
- *  Source: https://github.com/sacua/SinopeDriverHubitat/blob/main/drivers/TH1400ZB_Sinope_Hubitat.groovy
+ *  Source: https://github.com/sacua/SinopeDriverHubitat/blob/main/drivers/mergeDrivers/TH1400ZB_Sinope_Hubitat.groovy
  *
  *  Code derived from Sinope's SmartThing thermostat for their Zigbee protocol requirements, from the driver of erilaj and from the TH112xZB driver
  *  Source: https://raw.githubusercontent.com/SmartThingsCommunity/SmartThingsPublic/master/devicetypes/sinope-technologies/th1400zb-sinope-thermostat.src/th1400zb-sinope-thermostat.groovy
