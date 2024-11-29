@@ -1,0 +1,8 @@
+{
+    "extends": "recommended",
+    "rules": {
+        "UnusedPrivateMethod": {
+            "enabled": false
+        }
+    }
+}

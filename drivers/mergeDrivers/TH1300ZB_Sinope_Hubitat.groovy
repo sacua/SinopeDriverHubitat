@@ -95,8 +95,6 @@ metadata
     }
 }
 
-//-- Parsing -----------------------------------------------------------------------------------------
-
 //-- Capabilities -----------------------------------------------------------------------------------------
 
 def configure() {
@@ -1041,12 +1039,10 @@ private getSafetyWaterTemperature(value) {
             logInfo('Safety water temperature is enabled')
             device.updateSetting('prefSafetyWaterTemp', true)
             return 'true'
-            break
         case '00' :
             log.warn 'Safety water temperature is disabled, water temperature can go below 45°C / 113°F without turning back on by itself'
             device.updateSetting('prefSafetyWaterTemp', false)
             return 'false'
-            break
     }
 }
 
