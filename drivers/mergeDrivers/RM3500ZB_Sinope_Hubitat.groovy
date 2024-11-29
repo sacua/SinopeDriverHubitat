@@ -121,7 +121,7 @@ def configure() {
     cmds += zigbee.configureReporting(0x0500, 0x0002, DataType.BITMAP16, 0, Integer.parseInt(waterReportingSeconds))    // Water lear sensor state
     cmds += zigbee.configureReporting(0x0006, 0x0000, 0x10, 0, Integer.parseInt(switchReportingSeconds))                // Heater On/off state
     cmds += zigbee.configureReporting(0x0B04, 0x0505, 0x29, 30, 600)                                                    // Voltage
-    cmds += zigbee.configureReporting(0x0B04, 0x0508, 0x29, 30, 600, (int) powerReport * 4)                               // Current
+    cmds += zigbee.configureReporting(0x0B04, 0x0508, 0x29, 30, 600)                                                    // Current
     cmds += zigbee.configureReporting(0x0B04, 0x050B, 0x29, 30, 600, (int) powerReport)                                 // Active power reporting
     cmds += zigbee.configureReporting(0x0702, 0x0000, DataType.UINT48, 299, 1799, (int) energyChange)                   // Energy reading
     cmds += zigbee.configureReporting(0xFF01, 0x0076, DataType.UINT8, 0, 86400, null, [mfgCode: '0x119C'])              // Safety water temp reporting every 24 hours
@@ -157,6 +157,32 @@ def refresh() {
 
     if (cmds) {
         sendZigbeeCommands(cmds) // Submit zigbee commands
+    }
+
+    if (energyPrice == null) {
+        energyPrice = 9.38 as float
+    }
+    localCostPerKwh = energyPrice as float
+
+    if (state.yesterdayEnergy != null) {
+        float yesterdayCost = roundTwoPlaces(state.yesterdayEnergy * localCostPerKwh / 100)
+        sendEvent(name: 'yesterdayEnergy', value: state.yesterdayEnergy, unit: 'kWh')
+        sendEvent(name: 'yesterdayCost', value: yesterdayCost, unit: "\$")
+    }
+    if (state.lastWeekEnergy != null) {
+        float lastWeekCost = roundTwoPlaces(state.lastWeekEnergy * localCostPerKwh / 100)
+        sendEvent(name: 'lastWeekEnergy', value: state.lastWeekEnergy, unit: 'kWh')
+        sendEvent(name: 'lastWeekCost', value: lastWeekCost, unit: "\$")
+    }
+    if (state.lastMonthEnergy != null) {
+        float lastMonthCost = roundTwoPlaces(state.lastMonthEnergy * localCostPerKwh / 100)
+        sendEvent(name: 'lastMonthEnergy', value: state.lastMonthEnergy, unit: 'kWh')
+        sendEvent(name: 'lastMonthCost', value: lastMonthCost, unit: "\$")
+    }
+    if (state.lastYearEnergy != null) {
+        float lastYearCost = roundTwoPlaces(state.lastYearEnergy * localCostPerKwh / 100)
+        sendEvent(name: 'lastYearEnergy', value: state.lastYearEnergy, unit: 'kWh')
+        sendEvent(name: 'lastYearCost', value: lastYearCost, unit: "\$")
     }
 }
 
@@ -612,7 +638,7 @@ def resetDailyEnergy() {
     float dailyEnergy = roundTwoPlaces((state.energyValue + state.offsetEnergy - state.dailyEnergy) / 1000)
     float dailyCost = roundTwoPlaces(dailyEnergy * localCostPerKwh / 100)
     state.yesterdayEnergy = device.currentValue('dailyEnergy')
-    float yesterdayCost = roundTwoPlaces(yesterdayEnergy * localCostPerKwh / 100)
+    float yesterdayCost = roundTwoPlaces(state.yesterdayEnergy * localCostPerKwh / 100)
     sendEvent(name: 'yesterdayEnergy', value: state.yesterdayEnergy, unit: 'kWh')
     sendEvent(name: 'yesterdayCost', value: yesterdayCost, unit: "\$")
     sendEvent(name: 'dailyEnergy', value: dailyEnergy, unit: 'kWh')
@@ -628,7 +654,7 @@ def resetWeeklyEnergy() {
     float weeklyEnergy = roundTwoPlaces((state.energyValue + state.offsetEnergy - state.weeklyEnergy) / 1000)
     float weeklyCost = roundTwoPlaces(weeklyEnergy * localCostPerKwh / 100)
     state.lastWeekEnergy = device.currentValue('weeklyEnergy')
-    float lastWeekCost = roundTwoPlaces(lastWeekEnergy * localCostPerKwh / 100)
+    float lastWeekCost = roundTwoPlaces(state.lastWeekEnergy * localCostPerKwh / 100)
     sendEvent(name: 'lastWeekEnergy', value: state.lastWeekEnergy, unit: 'kWh')
     sendEvent(name: 'lastWeekCost', value: lastWeekCost, unit: "\$")
     sendEvent(name: 'weeklyEnergy', value: weeklyEnergy, unit: 'kWh')
@@ -644,7 +670,7 @@ def resetMonthlyEnergy() {
     float monthlyEnergy = roundTwoPlaces((state.energyValue + state.offsetEnergy - state.monthlyEnergy) / 1000)
     float monthlyCost = roundTwoPlaces(monthlyEnergy * localCostPerKwh / 100)
     state.lastMonthEnergy = device.currentValue('monthlyEnergy')
-    float lastMonthCost = roundTwoPlaces(lastMonthEnergy * localCostPerKwh / 100)
+    float lastMonthCost = roundTwoPlaces(state.lastMonthEnergy * localCostPerKwh / 100)
     sendEvent(name: 'lastMonthEnergy', value: state.lastMonthEnergy, unit: 'kWh')
     sendEvent(name: 'lastMonthCost', value: lastMonthCost, unit: "\$")
     sendEvent(name: 'monthlyEnergy', value: monthlyEnergy, unit: 'kWh')
@@ -660,7 +686,7 @@ def resetYearlyEnergy() {
     float yearlyEnergy = roundTwoPlaces((state.energyValue + state.offsetEnergy - state.yearlyEnergy) / 1000)
     float yearlyCost = roundTwoPlaces(yearlyEnergy * localCostPerKwh / 100)
     state.lastYearEnergy = device.currentValue('yearlyEnergy')
-    float lastYearCost = roundTwoPlaces(lastYearEnergy * localCostPerKwh / 100)
+    float lastYearCost = roundTwoPlaces(state.lastYearEnergy * localCostPerKwh / 100)
     sendEvent(name: 'lastYearEnergy', value: state.lastYearEnergy, unit: 'kWh')
     sendEvent(name: 'lastYearCost', value: lastYearCost, unit: "\$")
     sendEvent(name: 'yearlyEnergy', value: yearlyEnergy, unit: 'kWh')
@@ -965,7 +991,10 @@ private getActivePower(value) {
 
 private getRMSVoltage(attributeReportValue) {
     if (attributeReportValue != null) {
-        return Integer.parseInt(attributeReportValue, 16)
+        if (state.voltageDivider == null) {
+            state.voltageDivider = 1 as Integer
+        }
+        return Integer.parseInt(attributeReportValue, 16) / state.voltageDivider
     }
 }
 

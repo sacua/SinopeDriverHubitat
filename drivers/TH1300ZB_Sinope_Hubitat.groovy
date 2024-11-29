@@ -38,12 +38,12 @@ metadata
         capability 'Lock'
         capability 'PowerMeter'
         capability 'EnergyMeter'
-        capability 'CurrentMeter'
         capability 'VoltageMeasurement'
         capability 'Notification' // Receiving temperature notifications via RuleEngine
 
         attribute 'outdoorTemp', 'number'
         attribute 'heatingDemand', 'number'
+        attribute 'maxPower', 'number'
         attribute 'cost', 'number'
         attribute 'dailyCost', 'number'
         attribute 'weeklyCost', 'number'
@@ -120,6 +120,7 @@ def configure() {
     }
 
     state.setTemperatureTypeDigital = false
+    state.voltageDivider = 10 as Float
 
     //Set the scheduling some at random moment
     int timesec = Math.abs( new Random().nextInt() % 59)
@@ -156,7 +157,6 @@ def configure() {
     cmds += zigbee.configureReporting(0xFF01, 0x0115, 0x30, 10, 3600, 1)                                // report gfci status each hours
     cmds += zigbee.configureReporting(0xFF01, 0x010C, 0x30, 10, 3600, 1)                                // floor limit status each hours
     cmds += zigbee.configureReporting(0x0B04, 0x0505, 0x29, 30, 600)                                    // Voltage
-    cmds += zigbee.configureReporting(0x0B04, 0x0508, 0x29, 30, 600)                                    // Current
 
     // Configure displayed scale
     if (getTemperatureScale() == 'C') {
@@ -274,7 +274,6 @@ def refresh() {
     cmds += zigbee.readAttribute(0x0B04, 0x050D)    // Read highest power delivered
     cmds += zigbee.readAttribute(0x0B04, 0x050B)    // Read thermostat Active power
     cmds += zigbee.readAttribute(0x0B04, 0x0505)    // Read voltage
-    cmds += zigbee.readAttribute(0x0B04, 0x0508)    // Read amperage
     cmds += zigbee.readAttribute(0x0201, 0x0000)    // Read Local Temperature
     cmds += zigbee.readAttribute(0x0201, 0x0008)    // Read PI Heating State
     cmds += zigbee.readAttribute(0x0201, 0x0012)    // Read Heat Setpoint
@@ -285,6 +284,32 @@ def refresh() {
 
     if (cmds) {
         sendZigbeeCommands(cmds) // Submit zigbee commands
+    }
+
+    if (energyPrice == null) {
+        energyPrice = 9.38 as float
+    }
+    localCostPerKwh = energyPrice as float
+
+    if (state.yesterdayEnergy != null) {
+        float yesterdayCost = roundTwoPlaces(state.yesterdayEnergy * localCostPerKwh / 100)
+        sendEvent(name: 'yesterdayEnergy', value: state.yesterdayEnergy, unit: 'kWh')
+        sendEvent(name: 'yesterdayCost', value: yesterdayCost, unit: "\$")
+    }
+    if (state.lastWeekEnergy != null) {
+        float lastWeekCost = roundTwoPlaces(state.lastWeekEnergy * localCostPerKwh / 100)
+        sendEvent(name: 'lastWeekEnergy', value: state.lastWeekEnergy, unit: 'kWh')
+        sendEvent(name: 'lastWeekCost', value: lastWeekCost, unit: "\$")
+    }
+    if (state.lastMonthEnergy != null) {
+        float lastMonthCost = roundTwoPlaces(state.lastMonthEnergy * localCostPerKwh / 100)
+        sendEvent(name: 'lastMonthEnergy', value: state.lastMonthEnergy, unit: 'kWh')
+        sendEvent(name: 'lastMonthCost', value: lastMonthCost, unit: "\$")
+    }
+    if (state.lastYearEnergy != null) {
+        float lastYearCost = roundTwoPlaces(state.lastYearEnergy * localCostPerKwh / 100)
+        sendEvent(name: 'lastYearEnergy', value: state.lastYearEnergy, unit: 'kWh')
+        sendEvent(name: 'lastYearCost', value: lastYearCost, unit: "\$")
     }
 }
 
