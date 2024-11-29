@@ -37,10 +37,18 @@ metadata
         attribute 'weeklyCost', 'number'
         attribute 'monthlyCost', 'number'
         attribute 'yearlyCost', 'number'
+        attribute 'yesterdayCost', 'number'
+        attribute 'lastWeekCost', 'number'
+        attribute 'lastMonthCost', 'number'
+        attribute 'lastYearCost', 'number'
         attribute 'dailyEnergy', 'number'
         attribute 'weeklyEnergy', 'number'
         attribute 'monthlyEnergy', 'number'
         attribute 'yearlyEnergy', 'number'
+        attribute 'yesterdayEnergy', 'number'
+        attribute 'lastWeekEnergy', 'number'
+        attribute 'lastMonthEnergy', 'number'
+        attribute 'lastYearEnergy', 'number'
 
         command 'resetEnergyOffset', ['number']
         command 'resetDailyEnergy'
@@ -557,6 +565,10 @@ def resetDailyEnergy() {
     localCostPerKwh = energyPrice as float
     float dailyEnergy = roundTwoPlaces((state.energyValue + state.offsetEnergy - state.dailyEnergy) / 1000)
     float dailyCost = roundTwoPlaces(dailyEnergy * localCostPerKwh / 100)
+    state.yesterdayEnergy = device.currentValue('dailyEnergy')
+    float yesterdayCost = roundTwoPlaces(yesterdayEnergy * localCostPerKwh / 100)
+    sendEvent(name: 'yesterdayEnergy', value: state.yesterdayEnergy, unit: 'kWh')
+    sendEvent(name: 'yesterdayCost', value: yesterdayCost, unit: "\$")
     sendEvent(name: 'dailyEnergy', value: dailyEnergy, unit: 'kWh')
     sendEvent(name: 'dailyCost', value: dailyCost, unit: "\$")
 }
@@ -569,6 +581,10 @@ def resetWeeklyEnergy() {
     localCostPerKwh = energyPrice as float
     float weeklyEnergy = roundTwoPlaces((state.energyValue + state.offsetEnergy - state.weeklyEnergy) / 1000)
     float weeklyCost = roundTwoPlaces(weeklyEnergy * localCostPerKwh / 100)
+    state.lastWeekEnergy = device.currentValue('weeklyEnergy')
+    float lastWeekCost = roundTwoPlaces(lastWeekEnergy * localCostPerKwh / 100)
+    sendEvent(name: 'lastWeekEnergy', value: state.lastWeekEnergy, unit: 'kWh')
+    sendEvent(name: 'lastWeekCost', value: lastWeekCost, unit: "\$")
     sendEvent(name: 'weeklyEnergy', value: weeklyEnergy, unit: 'kWh')
     sendEvent(name: 'weeklyCost', value: weeklyCost, unit: "\$")
 }
@@ -581,6 +597,10 @@ def resetMonthlyEnergy() {
     localCostPerKwh = energyPrice as float
     float monthlyEnergy = roundTwoPlaces((state.energyValue + state.offsetEnergy - state.monthlyEnergy) / 1000)
     float monthlyCost = roundTwoPlaces(monthlyEnergy * localCostPerKwh / 100)
+    state.lastMonthEnergy = device.currentValue('monthlyEnergy')
+    float lastMonthCost = roundTwoPlaces(lastMonthEnergy * localCostPerKwh / 100)
+    sendEvent(name: 'lastMonthEnergy', value: state.lastMonthEnergy, unit: 'kWh')
+    sendEvent(name: 'lastMonthCost', value: lastMonthCost, unit: "\$")
     sendEvent(name: 'monthlyEnergy', value: monthlyEnergy, unit: 'kWh')
     sendEvent(name: 'monthlyCost', value: monthlyCost, unit: "\$")
 }
@@ -593,6 +613,10 @@ def resetYearlyEnergy() {
     localCostPerKwh = energyPrice as float
     float yearlyEnergy = roundTwoPlaces((state.energyValue + state.offsetEnergy - state.yearlyEnergy) / 1000)
     float yearlyCost = roundTwoPlaces(yearlyEnergy * localCostPerKwh / 100)
+    state.lastYearEnergy = device.currentValue('yearlyEnergy')
+    float lastYearCost = roundTwoPlaces(lastYearEnergy * localCostPerKwh / 100)
+    sendEvent(name: 'lastYearEnergy', value: state.lastYearEnergy, unit: 'kWh')
+    sendEvent(name: 'lastYearCost', value: lastYearCost, unit: "\$")
     sendEvent(name: 'yearlyEnergy', value: yearlyEnergy, unit: 'kWh')
     sendEvent(name: 'yearlyCost', value: yearlyCost, unit: "\$")
 }

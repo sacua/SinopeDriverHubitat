@@ -40,10 +40,18 @@ metadata
         attribute 'weeklyCost', 'number'
         attribute 'monthlyCost', 'number'
         attribute 'yearlyCost', 'number'
+        attribute 'yesterdayCost', 'number'
+        attribute 'lastWeekCost', 'number'
+        attribute 'lastMonthCost', 'number'
+        attribute 'lastYearCost', 'number'
         attribute 'dailyEnergy', 'number'
         attribute 'weeklyEnergy', 'number'
         attribute 'monthlyEnergy', 'number'
         attribute 'yearlyEnergy', 'number'
+        attribute 'yesterdayEnergy', 'number'
+        attribute 'lastWeekEnergy', 'number'
+        attribute 'lastMonthEnergy', 'number'
+        attribute 'lastYearEnergy', 'number'
 
         command 'resetEnergyOffset', ['number']
         command 'resetDailyEnergy'

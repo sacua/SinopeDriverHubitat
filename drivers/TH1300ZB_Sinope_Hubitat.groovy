@@ -49,11 +49,18 @@ metadata
         attribute 'weeklyCost', 'number'
         attribute 'monthlyCost', 'number'
         attribute 'yearlyCost', 'number'
+        attribute 'yesterdayCost', 'number'
+        attribute 'lastWeekCost', 'number'
+        attribute 'lastMonthCost', 'number'
+        attribute 'lastYearCost', 'number'
         attribute 'dailyEnergy', 'number'
         attribute 'weeklyEnergy', 'number'
         attribute 'monthlyEnergy', 'number'
         attribute 'yearlyEnergy', 'number'
-        attribute 'maxPower', 'number'
+        attribute 'yesterdayEnergy', 'number'
+        attribute 'lastWeekEnergy', 'number'
+        attribute 'lastMonthEnergy', 'number'
+        attribute 'lastYearEnergy', 'number'
 
         //Attributes specific to floor heating device
         attribute 'gfciStatus', 'enum', ['OK', 'error']
