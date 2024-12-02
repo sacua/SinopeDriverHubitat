@@ -26,6 +26,7 @@
  * v1.5.1 Correction of bug for the reset of energy meter
  * v1.5.2 Remove duplication of attribute declaration and change order of supportedThermostatModes
  * v2.0.0 Major code cleaning - Pseudo library being used - new capabilities added (2024-11-28)
+ * v2.1.0 Add floor temperature attributes (2024-12-02)
  */
 
 metadata
@@ -41,6 +42,7 @@ metadata
         capability 'VoltageMeasurement'
         capability 'Notification' // Receiving temperature notifications via RuleEngine
 
+        attribute 'floorTemperature', 'number'
         attribute 'outdoorTemp', 'number'
         attribute 'heatingDemand', 'number'
         attribute 'maxPower', 'number'
@@ -156,6 +158,7 @@ def configure() {
     cmds += zigbee.configureReporting(0x0204, 0x0001, 0x30, 1, 0)                                       // keypad lockout
     cmds += zigbee.configureReporting(0xFF01, 0x0115, 0x30, 10, 3600, 1)                                // report gfci status each hours
     cmds += zigbee.configureReporting(0xFF01, 0x010C, 0x30, 10, 3600, 1)                                // floor limit status each hours
+    cmds += zigbee.configureReporting(0xFF01, 0x0107, 0x29, 30, 580, (int) tempChange)                  // floor temperature ???No idea if auto report works for this attribute
     cmds += zigbee.configureReporting(0x0B04, 0x0505, 0x29, 30, 600)                                    // Voltage
 
     // Configure displayed scale
@@ -281,6 +284,7 @@ def refresh() {
     cmds += zigbee.readAttribute(0x0204, 0x0000)    // Read Temperature Display Mode
     cmds += zigbee.readAttribute(0x0204, 0x0001)    // Read Keypad Lockout
     cmds += zigbee.readAttribute(0x0702, 0x0000)    // Read energy delivered
+    cmds += zigbee.readAttribute(0xFF01, 0x0107)    // Read floor temperature
 
     if (cmds) {
         sendZigbeeCommands(cmds) // Submit zigbee commands
@@ -352,6 +356,7 @@ def off() {
  *  for the specific language governing permissions and limitations under the License.
  *
  * v1.0.0 Initial commit (2024-11-28)
+ * v1.1.0 Add floor temperature reading (2024-12-02)
  */
 
 // Constants
@@ -558,6 +563,13 @@ def parse(String description) {
                     name = 'safetyWaterTemp'
                     value = getSafetyWaterTemperature(descMap.value)
                     descriptionText = "Safety water temperature reports ${value}"
+                    break
+
+                case 0x0107: // https://github.com/claudegel/sinope-zha
+                    name = 'floorTemperature'
+                    value = getTemperature(descMap.value)
+                    unit = getTemperatureScale()
+                    descriptionText = "Floor temperature of ${device.displayName} is at ${value}${unit}"
                     break
 
                 case 0x010C:

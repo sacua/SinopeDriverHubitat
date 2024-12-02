@@ -171,6 +171,7 @@ def on() {
  *  for the specific language governing permissions and limitations under the License.
  *
  * v1.0.0 Initial commit (2024-11-28)
+ * v1.1.0 Add floor temperature reading (2024-12-02)
  */
 
 // Constants
@@ -377,6 +378,13 @@ def parse(String description) {
                     name = 'safetyWaterTemp'
                     value = getSafetyWaterTemperature(descMap.value)
                     descriptionText = "Safety water temperature reports ${value}"
+                    break
+
+                case 0x0107: // https://github.com/claudegel/sinope-zha
+                    name = 'floorTemperature'
+                    value = getTemperature(descMap.value)
+                    unit = getTemperatureScale()
+                    descriptionText = "Floor temperature of ${device.displayName} is at ${value}${unit}"
                     break
 
                 case 0x010C:
