@@ -341,7 +341,7 @@ def uninstalled() {
     }
     catch (errMsg)
     {
-        log.error "${device.displayName} : uninstalled() - unschedule() threw an exception : ${errMsg}"
+        logError("${device.displayName} : uninstalled() - unschedule() threw an exception : ${errMsg}")
     }
 }
 
@@ -460,7 +460,7 @@ def parse(String description) {
             }
             break
 
-        case 0x0B04: // None of those are autoreported.
+        case 0x0B04:
             switch (descMap.attrInt)
             {
                 case 0x0505:
@@ -825,34 +825,34 @@ def displayAdaptive() {
 }
 
 def auto() {
-    log.warn 'auto(): mode is not available for this device. => Defaulting to heat mode instead.'
+    logWarn('auto(): mode is not available for this device. => Defaulting to heat mode instead.')
     heat()
 }
 
 def cool() {
-    log.warn 'cool(): mode is not available for this device. => Defaulting to heat mode instead.'
+    logWarn('cool(): mode is not available for this device. => Defaulting to heat mode instead.')
     heat()
 }
 
 def emergencyHeat() {
-    log.warn 'emergencyHeat(): mode is not available for this device. => Defaulting to heat mode instead.'
+    logWarn('emergencyHeat(): mode is not available for this device. => Defaulting to heat mode instead.')
     heat()
 }
 
 def fanAuto() {
-    log.warn 'fanAuto(): mode is not available for this device'
+    logWarn('fanAuto(): mode is not available for this device')
 }
 
 def fanCirculate() {
-    log.warn 'fanCirculate(): mode is not available for this device'
+    logWarn('fanCirculate(): mode is not available for this device')
 }
 
 def fanOn() {
-    log.warn 'fanOn(): mode is not available for this device'
+    logWarn('fanOn(): mode is not available for this device')
 }
 
 def setCoolingSetpoint(degrees) {
-    log.warn "setCoolingSetpoint(${degrees}): is not available for this device"
+    logWarn("setCoolingSetpoint(${degrees}): is not available for this device")
 }
 
 def setHeatingSetpoint(preciseDegrees) {
@@ -884,7 +884,7 @@ def Setpoint() {
 }
 
 def setThermostatFanMode(fanmode) {
-    log.warn "setThermostatFanMode(${fanmode}): is not available for this device"
+    logWarn("setThermostatFanMode(${fanmode}): is not available for this device")
 }
 
 def setThermostatMode(String value) {
@@ -952,7 +952,7 @@ private setBacklightMode(mode = prefBacklightMode) {
     }
 
     if (backlightModeAttr == null) {
-        log.warn("invalid display mode ${mode}")
+        logWarn("invalid display mode ${mode}")
         return
     }
 
@@ -974,7 +974,7 @@ private setSecondTempDisplay(mode = prefSecondTempDisplay) {
     }
     else
     {
-        log.warn("invalid secondary temperature display mode ${mode}")
+        logWarn("invalid secondary temperature display mode ${mode}")
     }
 }
 
@@ -1034,7 +1034,7 @@ private getSafetyWaterTemperature(value) {
             device.updateSetting('prefSafetyWaterTemp', true)
             return 'true'
         case '00' :
-            log.warn 'Safety water temperature is disabled, water temperature can go below 45°C / 113°F without turning back on by itself'
+            logWarn('Safety water temperature is disabled, water temperature can go below 45°C / 113°F without turning back on by itself')
             device.updateSetting('prefSafetyWaterTemp', false)
             return 'false'
     }
@@ -1119,6 +1119,14 @@ private logInfo(message) {
 
 private logDebug(message) {
     if (debugEnable) log.debug("${device.displayName} : ${message}")
+}
+
+private logError(message) {
+    log.error("${device.displayName}: ${message}")
+}
+
+private logWarn(message) {
+    log.warn("${device.displayName}: ${message}")
 }
 
 private void sendZigbeeCommands(cmds) {

@@ -35,7 +35,7 @@ metadata {
         capability 'Configuration'
         capability 'TemperatureMeasurement'
         capability 'Refresh'
-        //capability 'Lock' // To validate if that can be again add to google home integration
+        capability 'Lock'
         capability 'PowerMeter'
         capability 'EnergyMeter'
         capability 'VoltageMeasurement'
