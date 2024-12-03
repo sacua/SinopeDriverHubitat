@@ -19,6 +19,7 @@
  * v1.1.0 Correction for attribute reading for heat and off command
  * v1.2.0 Enable debug parse, send event at configure for the supported mode and possible to reset the offset value
  * v2.0.0 Major code cleaning - Pseudo library being used (2024-11-28)
+ * v2.1.0 Add floor temperature attributes and DR Icon (2024-12-02)
  */
 
 metadata
@@ -31,6 +32,7 @@ metadata
         capability 'Lock'
         capability 'Notification' // Receiving temperature notifications via RuleEngine
 
+        attribute 'floorTemperature', 'number'
         attribute 'outdoorTemp', 'number'
         attribute 'heatingDemand', 'number'
 
@@ -38,9 +40,13 @@ metadata
         attribute 'floorLimitStatus', 'enum', ['OK', 'floorLimitLowReached', 'floorLimitMaxReached', 'floorAirLimitLowReached', 'floorAirLimitMaxReached']
 
         command 'refreshTime' //Refresh the clock on the thermostat
+        command 'setClockTime' //Same as above, for compatibility with built-in driver (e.g. for Rule Machine)
+        command 'turnOnIconDR'
+        command 'turnOffIconDR'
         command 'displayOn'
         command 'displayOff'
         command 'refreshTemp' //To refresh only the temperature reading
+        command 'refreshFloorTemp' // To refresh only the floor temperature reading
         command 'resetEnergyOffset', ['number']
 
         fingerprint endpoint: '1', profileId: '0104', inClusters: '0000,0003,0004,0005,0201,0204,0402,FF01', outClusters: '0003', manufacturer: 'Sinope Technologies', model: 'TH1400ZB', deviceJoinName: 'Sinope Thermostat TH1400ZB'
@@ -56,7 +62,7 @@ metadata
         input name: 'FloorLimitMinParam', type: 'number', title:'Floor low limit (5C to 36C / 41F to 97F)', description: 'The minimum temperature limit of the floor when in ambient control mode.', range:'5..97', required: false
         input name: 'FloorLimitMaxParam', type: 'number', title:'Floor high limit (5C to 36C / 41F to 97F)', description: 'The maximum temperature limit of the floor when in ambient control mode.', range:'5..97', required: false
         input name: 'AuxiliaryCycleLengthParam', type: 'enum', title:'Auxiliary cycle length', options: ['disable, 15 seconds', '30 minutes'], required: false
-
+        
         input name: 'tempChange', type: 'number', title: 'Temperature change', description: 'Minumum change of temperature reading to trigger report in Celsius/100, 5..50', range: '5..50', defaultValue: 50
         input name: 'heatingChange', type: 'number', title: 'Heating change', description: 'Minimum change in the PI heating in % to trigger power and PI heating reporting, 1..25', range: '1..25', defaultValue: 5
 
@@ -109,7 +115,8 @@ def configure() {
     cmds += zigbee.configureReporting(0x0204, 0x0000, 0x30, 1, 0)                           // temperature display mode
     cmds += zigbee.configureReporting(0x0204, 0x0001, 0x30, 1, 0)                           // keypad lockout
     cmds += zigbee.configureReporting(0xFF01, 0x0115, 0x30, 10, 3600, 1)                    // report gfci status each hours
-    cmds += zigbee.configureReporting(0xFF01, 0x010C, 0x30, 10, 3600, 1)                     // floor limit status each hours
+    cmds += zigbee.configureReporting(0xFF01, 0x010C, 0x30, 10, 3600, 1)                    // floor limit status each hours
+    cmds += zigbee.configureReporting(0xFF01, 0x0107, 0x29, 30, 580, (int) tempChange)      // floor temperature ???Seems to not work :(
 
     // Configure displayed scale
     if (getTemperatureScale() == 'C') {
@@ -253,6 +260,7 @@ def refresh() {
     cmds += zigbee.readAttribute(0x0204, 0x0001)    // Read Keypad Lockout
     cmds += zigbee.readAttribute(0xFF01, 0x010C)    // Read Floor Limit Status
     cmds += zigbee.readAttribute(0xFF01, 0x0115)    // Read GFCI Status
+    cmds += zigbee.readAttribute(0xFF01, 0x0107)    // Read floor temperature
 
     if (cmds) {
         sendZigbeeCommands(cmds) // Submit zigbee commands
@@ -298,6 +306,7 @@ def off() {
  *  for the specific language governing permissions and limitations under the License.
  *
  * v1.0.0 Initial commit (2024-11-28)
+ * v1.1.0 Add floor temperature reading and DR Icon (2024-12-02)
  */
 
 // Constants
@@ -504,6 +513,13 @@ def parse(String description) {
                     name = 'safetyWaterTemp'
                     value = getSafetyWaterTemperature(descMap.value)
                     descriptionText = "Safety water temperature reports ${value}"
+                    break
+
+                case 0x0107: // https://github.com/claudegel/sinope-zha
+                    name = 'floorTemperature'
+                    value = getTemperature(descMap.value)
+                    unit = getTemperatureScale()
+                    descriptionText = "Floor temperature of ${device.displayName} is at ${value}${unit}"
                     break
 
                 case 0x010C:
@@ -775,10 +791,30 @@ def resetYearlyEnergy() {
 }
 
 //-- Thermostat specific function-------------------------------------------------------------------------
+def turnOnIconDR() {
+    def cmds = []
+    cmds += zigbee.writeAttribute(0xFF01, 0x0071, DataType.INT8, (int) 0)
+    sendZigbeeCommands(cmds)
+}
+
+def turnOffIconDR() {
+    def cmds = []
+    cmds += zigbee.writeAttribute(0xFF01, 0x0071, DataType.INT8, (int) -128)
+    sendZigbeeCommands(cmds)
+}
 
 def refreshTemp() {
     def cmds = []
     cmds += zigbee.readAttribute(0x0201, 0x0000)  //Read Local Temperature
+
+    if (cmds) {
+        sendZigbeeCommands(cmds)
+    }
+}
+
+def refreshFloorTemp() {
+    def cmds = []
+    cmds += zigbee.readAttribute(0xFF01, 0x0107)  //Read Floor Temperature
 
     if (cmds) {
         sendZigbeeCommands(cmds)
@@ -927,7 +963,7 @@ def deviceNotification(text) {
         double outdoorTemp = text.toDouble()
         def updateDescriptionText = "Received outdoor weather report : ${outdoorTemp} ${getTemperatureScale()}"
         sendEvent(name: 'outdoorTemp', value: outdoorTemp, unit: getTemperatureScale(), descriptionText: updateDescriptionText)
-        logInfo(updateDescriptionText) // TODO : should be done in createCustomMap() for all events with descriptionText
+        logInfo(updateDescriptionText)
 
         // the value sent to the thermostat must be in C
         if (getTemperatureScale() == 'F') {
@@ -1044,6 +1080,19 @@ private getSafetyWaterTemperature(value) {
 private getTemperature(value) {
     if (value != null) {
         def celsius = Integer.parseInt(value, 16) / 100
+        if (getTemperatureScale() == 'C') {
+            return celsius
+        }
+        else
+        {
+            return roundTwoPlaces(celsiusToFahrenheit(celsius))
+        }
+    }
+}
+
+private getTemperatureOffset(value) {
+    if (value != null) {
+        def celsius = Integer.parseInt(value, 16) / 10
         if (getTemperatureScale() == 'C') {
             return celsius
         }
