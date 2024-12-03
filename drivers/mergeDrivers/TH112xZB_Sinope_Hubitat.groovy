@@ -27,6 +27,7 @@
  * v1.7.0 Adding cycle length control
  * v1.7.1 Correction of bug regarding logging debug and info
  * v2.0.0 Major code cleaning - Pseudo library being used - new capabilities added (2024-11-28)
+ * v2.1.0 Add DR Icon (2023-12-02)
  */
 
 metadata {
@@ -64,6 +65,8 @@ metadata {
 
         command 'refreshTime' //Refresh the clock on the thermostat
         command 'setClockTime' //Same as above, for compatibility with built-in driver (e.g. for Rule Machine)
+        command 'turnOnIconDR'
+        command 'turnOffIconDR'
         command 'displayOn'
         command 'displayOff'
         command 'displayAdaptive'
@@ -279,7 +282,7 @@ def off() {
  *  for the specific language governing permissions and limitations under the License.
  *
  * v1.0.0 Initial commit (2024-11-28)
- * v1.1.0 Add floor temperature reading (2024-12-02)
+ * v1.1.0 Add floor temperature reading and DR Icon (2024-12-02)
  */
 
 // Constants
@@ -764,10 +767,30 @@ def resetYearlyEnergy() {
 }
 
 //-- Thermostat specific function-------------------------------------------------------------------------
+def turnOnIconDR() {
+    def cmds = []
+    cmds += zigbee.writeAttribute(0xFF01, 0x0071, DataType.INT8, (int) 0)
+    sendZigbeeCommands(cmds)
+}
+
+def turnOffIconDR() {
+    def cmds = []
+    cmds += zigbee.writeAttribute(0xFF01, 0x0071, DataType.INT8, (int) -128)
+    sendZigbeeCommands(cmds)
+}
 
 def refreshTemp() {
     def cmds = []
     cmds += zigbee.readAttribute(0x0201, 0x0000)  //Read Local Temperature
+
+    if (cmds) {
+        sendZigbeeCommands(cmds)
+    }
+}
+
+def refreshFloorTemp() {
+    def cmds = []
+    cmds += zigbee.readAttribute(0xFF01, 0x0107)  //Read Floor Temperature
 
     if (cmds) {
         sendZigbeeCommands(cmds)
@@ -916,7 +939,7 @@ def deviceNotification(text) {
         double outdoorTemp = text.toDouble()
         def updateDescriptionText = "Received outdoor weather report : ${outdoorTemp} ${getTemperatureScale()}"
         sendEvent(name: 'outdoorTemp', value: outdoorTemp, unit: getTemperatureScale(), descriptionText: updateDescriptionText)
-        logInfo(updateDescriptionText) // TODO : should be done in createCustomMap() for all events with descriptionText
+        logInfo(updateDescriptionText)
 
         // the value sent to the thermostat must be in C
         if (getTemperatureScale() == 'F') {
@@ -1033,6 +1056,19 @@ private getSafetyWaterTemperature(value) {
 private getTemperature(value) {
     if (value != null) {
         def celsius = Integer.parseInt(value, 16) / 100
+        if (getTemperatureScale() == 'C') {
+            return celsius
+        }
+        else
+        {
+            return roundTwoPlaces(celsiusToFahrenheit(celsius))
+        }
+    }
+}
+
+private getTemperatureOffset(value) {
+    if (value != null) {
+        def celsius = Integer.parseInt(value, 16) / 10
         if (getTemperatureScale() == 'C') {
             return celsius
         }

@@ -26,7 +26,7 @@
  * v1.5.1 Correction of bug for the reset of energy meter
  * v1.5.2 Remove duplication of attribute declaration and change order of supportedThermostatModes
  * v2.0.0 Major code cleaning - Pseudo library being used - new capabilities added (2024-11-28)
- * v2.1.0 Add floor temperature attributes (2024-12-02)
+ * v2.1.0 Add floor temperature attributes and DR Icon (2024-12-02)
  */
 
 metadata
@@ -70,10 +70,13 @@ metadata
 
         command 'refreshTime' //Refresh the clock on the thermostat
         command 'setClockTime' //Same as above, for compatibility with built-in driver (e.g. for Rule Machine)
+        command 'turnOnIconDR'
+        command 'turnOffIconDR'
         command 'displayOn'
         command 'displayOff'
         command 'displayAdaptive'
-        command 'refreshTemp' //To refresh only the temperature reading
+        command 'refreshTemp' // To refresh only the temperature reading
+        command 'refreshFloorTemp' // To refresh only the floor temperature reading
         command 'resetEnergyOffset', ['number']
         command 'resetDailyEnergy'
         command 'resetWeeklyEnergy'
@@ -92,7 +95,7 @@ metadata
         input name: 'FloorMaxAirTemperatureParam', type: 'number', title:'Ambient high limit (5C to 36C / 41F to 97F)', description: 'The maximum ambient temperature limit when in floor control mode.', range: '5..97', required: false
         input name: 'FloorLimitMinParam', type: 'number', title:'Floor low limit (5C to 36C / 41F to 97F)', description: 'The minimum temperature limit of the floor when in ambient control mode.', range:'5..97', required: false
         input name: 'FloorLimitMaxParam', type: 'number', title:'Floor high limit (5C to 36C / 41F to 97F)', description: 'The maximum temperature limit of the floor when in ambient control mode.', range:'5..97', required: false
-
+        
         input name: 'tempChange', type: 'number', title: 'Temperature change', description: 'Minumum change of temperature reading to trigger report in Celsius/100, 5..50', range: '5..50', defaultValue: 50
         input name: 'heatingChange', type: 'number', title: 'Heating change', description: 'Minimum change in the PI heating in % to trigger power and PI heating reporting, 1..25', range: '1..25', defaultValue: 5
         input name: 'energyChange', type: 'number', title: 'Energy increment', description: 'Minimum increment of the energy meter in Wh to trigger energy reporting, 10..*', range: '10..*', defaultValue: 10
@@ -158,7 +161,7 @@ def configure() {
     cmds += zigbee.configureReporting(0x0204, 0x0001, 0x30, 1, 0)                                       // keypad lockout
     cmds += zigbee.configureReporting(0xFF01, 0x0115, 0x30, 10, 3600, 1)                                // report gfci status each hours
     cmds += zigbee.configureReporting(0xFF01, 0x010C, 0x30, 10, 3600, 1)                                // floor limit status each hours
-    cmds += zigbee.configureReporting(0xFF01, 0x0107, 0x29, 30, 580, (int) tempChange)                  // floor temperature ???No idea if auto report works for this attribute
+    cmds += zigbee.configureReporting(0xFF01, 0x0107, 0x29, 30, 580, (int) tempChange)                  // floor temperature ???Seems to not work :(
     cmds += zigbee.configureReporting(0x0B04, 0x0505, 0x29, 30, 600)                                    // Voltage
 
     // Configure displayed scale

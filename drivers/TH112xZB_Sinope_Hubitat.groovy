@@ -27,6 +27,7 @@
  * v1.7.0 Adding cycle length control
  * v1.7.1 Correction of bug regarding logging debug and info
  * v2.0.0 Major code cleaning - Pseudo library being used - new capabilities added (2024-11-28)
+ * v2.1.0 Add DR Icon (2023-12-02)
  */
 
 metadata {
@@ -64,6 +65,8 @@ metadata {
 
         command 'refreshTime' //Refresh the clock on the thermostat
         command 'setClockTime' //Same as above, for compatibility with built-in driver (e.g. for Rule Machine)
+        command 'turnOnIconDR'
+        command 'turnOffIconDR'
         command 'displayOn'
         command 'displayOff'
         command 'displayAdaptive'

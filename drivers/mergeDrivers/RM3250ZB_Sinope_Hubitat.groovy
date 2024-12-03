@@ -171,7 +171,7 @@ def on() {
  *  for the specific language governing permissions and limitations under the License.
  *
  * v1.0.0 Initial commit (2024-11-28)
- * v1.1.0 Add floor temperature reading (2024-12-02)
+ * v1.1.0 Add floor temperature reading and DR Icon (2024-12-02)
  */
 
 // Constants
@@ -656,10 +656,30 @@ def resetYearlyEnergy() {
 }
 
 //-- Thermostat specific function-------------------------------------------------------------------------
+def turnOnIconDR() {
+    def cmds = []
+    cmds += zigbee.writeAttribute(0xFF01, 0x0071, DataType.INT8, (int) 0)
+    sendZigbeeCommands(cmds)
+}
+
+def turnOffIconDR() {
+    def cmds = []
+    cmds += zigbee.writeAttribute(0xFF01, 0x0071, DataType.INT8, (int) -128)
+    sendZigbeeCommands(cmds)
+}
 
 def refreshTemp() {
     def cmds = []
     cmds += zigbee.readAttribute(0x0201, 0x0000)  //Read Local Temperature
+
+    if (cmds) {
+        sendZigbeeCommands(cmds)
+    }
+}
+
+def refreshFloorTemp() {
+    def cmds = []
+    cmds += zigbee.readAttribute(0xFF01, 0x0107)  //Read Floor Temperature
 
     if (cmds) {
         sendZigbeeCommands(cmds)
@@ -808,7 +828,7 @@ def deviceNotification(text) {
         double outdoorTemp = text.toDouble()
         def updateDescriptionText = "Received outdoor weather report : ${outdoorTemp} ${getTemperatureScale()}"
         sendEvent(name: 'outdoorTemp', value: outdoorTemp, unit: getTemperatureScale(), descriptionText: updateDescriptionText)
-        logInfo(updateDescriptionText) // TODO : should be done in createCustomMap() for all events with descriptionText
+        logInfo(updateDescriptionText)
 
         // the value sent to the thermostat must be in C
         if (getTemperatureScale() == 'F') {
@@ -925,6 +945,19 @@ private getSafetyWaterTemperature(value) {
 private getTemperature(value) {
     if (value != null) {
         def celsius = Integer.parseInt(value, 16) / 100
+        if (getTemperatureScale() == 'C') {
+            return celsius
+        }
+        else
+        {
+            return roundTwoPlaces(celsiusToFahrenheit(celsius))
+        }
+    }
+}
+
+private getTemperatureOffset(value) {
+    if (value != null) {
+        def celsius = Integer.parseInt(value, 16) / 10
         if (getTemperatureScale() == 'C') {
             return celsius
         }
