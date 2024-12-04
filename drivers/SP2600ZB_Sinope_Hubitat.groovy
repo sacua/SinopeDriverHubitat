@@ -17,6 +17,7 @@
  * v1.3.0 Enable custom time for reset and manual reset
  * v1.3.1 Correction of bug for the reset of energy meter
  * v2.0.0 Major code cleaning - Pseudo library being used - new capabilities added (2024-11-28)
+ * v2.0.1 Update fingerprint (2024-12-03)
  */
 
 metadata
@@ -55,7 +56,7 @@ metadata
         command 'resetMonthlyEnergy'
         command 'resetYearlyEnergy'
 
-        fingerprint profileId:'0104', inClusters:'0000,0002,0003,0004,0005,0006,0702,0B04,0B05,FF01', outClusters:'0003,0004,0019', model:'SP2600ZB', manufacturer:'Sinope Technologies', deviceJoinName: 'Sinope outlet'
+        fingerprint profileId:"0104", inClusters:"0000,0003,0006,0702,0B04,FF01", outClusters:"0019", model:"SP2600ZB", manufacturer:"Sinope Technologies", deviceJoinName: 'Sinope outlet'
     }
 
     preferences {

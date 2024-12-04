@@ -27,6 +27,7 @@
  * v1.5.2 Remove duplication of attribute declaration and change order of supportedThermostatModes
  * v2.0.0 Major code cleaning - Pseudo library being used - new capabilities added (2024-11-28)
  * v2.1.0 Add floor temperature attributes and DR Icon (2024-12-02)
+ * v2.1.1 Bug related to floor temperature and room temperatyre (2024-12-03)
  */
 
 metadata
@@ -42,7 +43,7 @@ metadata
         capability 'VoltageMeasurement'
         capability 'Notification' // Receiving temperature notifications via RuleEngine
 
-        attribute 'floorTemperature', 'number'
+        attribute 'secondaryTemperature', 'number'
         attribute 'outdoorTemp', 'number'
         attribute 'heatingDemand', 'number'
         attribute 'maxPower', 'number'
@@ -76,7 +77,6 @@ metadata
         command 'displayOff'
         command 'displayAdaptive'
         command 'refreshTemp' // To refresh only the temperature reading
-        command 'refreshFloorTemp' // To refresh only the floor temperature reading
         command 'resetEnergyOffset', ['number']
         command 'resetDailyEnergy'
         command 'resetWeeklyEnergy'
@@ -136,6 +136,10 @@ def configure() {
     timemin = Math.abs( new Random().nextInt() % 59)
     timehour = Math.abs( new Random().nextInt() % 23)
     schedule(timesec + ' ' + timemin + ' ' + timehour + ' * * ? *', refreshMaxPower) //refresh maximum power capacity of the equipement wired to the thermostat one time per day at a random moment
+
+    timesec = Math.abs( new Random().nextInt() % 59)
+    timemin = Math.abs( new Random().nextInt() % 59)
+    schedule(timesec + ' ' + timemin + '/5 * * * ? *', refreshSecondTemp) //refresh secondary temperature reading (floor or air)
 
     energyScheduling()
 

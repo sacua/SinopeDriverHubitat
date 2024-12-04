@@ -27,6 +27,7 @@
  * v1.5.2 Remove duplication of attribute declaration and change order of supportedThermostatModes
  * v2.0.0 Major code cleaning - Pseudo library being used - new capabilities added (2024-11-28)
  * v2.1.0 Add floor temperature attributes and DR Icon (2024-12-02)
+ * v2.1.1 Bug related to floor temperature and room temperatyre (2024-12-03)
  */
 
 metadata
@@ -42,7 +43,7 @@ metadata
         capability 'VoltageMeasurement'
         capability 'Notification' // Receiving temperature notifications via RuleEngine
 
-        attribute 'floorTemperature', 'number'
+        attribute 'secondaryTemperature', 'number'
         attribute 'outdoorTemp', 'number'
         attribute 'heatingDemand', 'number'
         attribute 'maxPower', 'number'
@@ -76,7 +77,6 @@ metadata
         command 'displayOff'
         command 'displayAdaptive'
         command 'refreshTemp' // To refresh only the temperature reading
-        command 'refreshFloorTemp' // To refresh only the floor temperature reading
         command 'resetEnergyOffset', ['number']
         command 'resetDailyEnergy'
         command 'resetWeeklyEnergy'
@@ -136,6 +136,10 @@ def configure() {
     timemin = Math.abs( new Random().nextInt() % 59)
     timehour = Math.abs( new Random().nextInt() % 23)
     schedule(timesec + ' ' + timemin + ' ' + timehour + ' * * ? *', refreshMaxPower) //refresh maximum power capacity of the equipement wired to the thermostat one time per day at a random moment
+
+    timesec = Math.abs( new Random().nextInt() % 59)
+    timemin = Math.abs( new Random().nextInt() % 59)
+    schedule(timesec + ' ' + timemin + '/5 * * * ? *', refreshSecondTemp) //refresh secondary temperature reading (floor or air)
 
     energyScheduling()
 
@@ -360,6 +364,7 @@ def off() {
  *
  * v1.0.0 Initial commit (2024-11-28)
  * v1.1.0 Add floor temperature reading and DR Icon (2024-12-02)
+ * v1.1.1 Bug related to floor temperature and room temperatyre (2024-12-03)
  */
 
 // Constants
@@ -442,7 +447,7 @@ def parse(String description) {
             }
             break
 
-        case 0x0201:
+        case 0x0201: // Thermostat cluster
             switch (descMap.attrInt)
             {
                 case 0x0000:
@@ -522,7 +527,7 @@ def parse(String description) {
             }
             break
 
-        case 0x0B04:
+        case 0x0B04: // Electrical cluster
             switch (descMap.attrInt)
             {
                 case 0x0505:
@@ -559,7 +564,7 @@ def parse(String description) {
             }
             break
 
-        case 0xFF01:
+        case 0xFF01: // Sinope custom cluster
             switch (descMap.attrInt)
             {
                 case 0x0076:
@@ -569,11 +574,12 @@ def parse(String description) {
                     break
 
                 case 0x0107: // https://github.com/claudegel/sinope-zha
-                    name = 'floorTemperature'
+                    name = 'secondaryTemperature'
                     value = getTemperature(descMap.value)
                     unit = getTemperatureScale()
                     descriptionText = "Floor temperature of ${device.displayName} is at ${value}${unit}"
                     break
+
 
                 case 0x010C:
                     name = 'floorLimitStatus'
@@ -591,6 +597,13 @@ def parse(String description) {
                         value = 'floorAirLimitMaxReached'
 
                     descriptionText = "The floor limit status of ${device.displayName} is ${value}}"
+                    break
+                
+                case 0x010D: // https://github.com/claudegel/sinope-zha
+                    name = 'secondaryTemperature'
+                    value = getTemperature(descMap.value)
+                    unit = getTemperatureScale()
+                    descriptionText = "Room temperature of ${device.displayName} is at ${value}${unit}"
                     break
 
                 case 0x0115:
@@ -865,9 +878,13 @@ def refreshTemp() {
     }
 }
 
-def refreshFloorTemp() {
+def refreshSecondTemp() {
     def cmds = []
-    cmds += zigbee.readAttribute(0xFF01, 0x0107)  //Read Floor Temperature
+    if (prefAirFloorModeParam == 'Ambient') { //Air mode
+        cmds += zigbee.readAttribute(0xFF01, 0x0107)  //Read Floor Temperature
+    } else { //Floor mode
+        cmds += zigbee.readAttribute(0xFF01, 0x010D)  //Read Room Temperature
+    }
 
     if (cmds) {
         sendZigbeeCommands(cmds)
