@@ -411,7 +411,7 @@ def parse(String description) {
                     name = 'secondaryTemperature'
                     value = getTemperature(descMap.value)
                     unit = getTemperatureScale()
-                    descriptionText = "Romm temperature of ${device.displayName} is at ${value}${unit}"
+                    descriptionText = "Room temperature of ${device.displayName} is at ${value}${unit}"
                     break
 
                 case 0x0115:
