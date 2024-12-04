@@ -283,6 +283,7 @@ def off() {
  *
  * v1.0.0 Initial commit (2024-11-28)
  * v1.1.0 Add floor temperature reading and DR Icon (2024-12-02)
+ * v1.1.1 Bug related to floor temperature and room temperatyre (2024-12-03)
  */
 
 // Constants
@@ -365,7 +366,7 @@ def parse(String description) {
             }
             break
 
-        case 0x0201:
+        case 0x0201: // Thermostat cluster
             switch (descMap.attrInt)
             {
                 case 0x0000:
@@ -445,7 +446,7 @@ def parse(String description) {
             }
             break
 
-        case 0x0B04:
+        case 0x0B04: // Electrical cluster
             switch (descMap.attrInt)
             {
                 case 0x0505:
@@ -482,7 +483,7 @@ def parse(String description) {
             }
             break
 
-        case 0xFF01:
+        case 0xFF01: // Sinope custom cluster
             switch (descMap.attrInt)
             {
                 case 0x0076:
@@ -492,11 +493,12 @@ def parse(String description) {
                     break
 
                 case 0x0107: // https://github.com/claudegel/sinope-zha
-                    name = 'floorTemperature'
+                    name = 'secondaryTemperature'
                     value = getTemperature(descMap.value)
                     unit = getTemperatureScale()
                     descriptionText = "Floor temperature of ${device.displayName} is at ${value}${unit}"
                     break
+
 
                 case 0x010C:
                     name = 'floorLimitStatus'
@@ -514,6 +516,13 @@ def parse(String description) {
                         value = 'floorAirLimitMaxReached'
 
                     descriptionText = "The floor limit status of ${device.displayName} is ${value}}"
+                    break
+                
+                case 0x010D: // https://github.com/claudegel/sinope-zha
+                    name = 'secondaryTemperature'
+                    value = getTemperature(descMap.value)
+                    unit = getTemperatureScale()
+                    descriptionText = "Romm temperature of ${device.displayName} is at ${value}${unit}"
                     break
 
                 case 0x0115:
@@ -788,9 +797,13 @@ def refreshTemp() {
     }
 }
 
-def refreshFloorTemp() {
+def refreshSecondTemp() {
     def cmds = []
-    cmds += zigbee.readAttribute(0xFF01, 0x0107)  //Read Floor Temperature
+    if (prefAirFloorModeParam == 'Ambient') { //Air mode
+        cmds += zigbee.readAttribute(0xFF01, 0x0107)  //Read Floor Temperature
+    } else { //Floor mode
+        cmds += zigbee.readAttribute(0xFF01, 0x010D)  //Read Room Temperature
+    }
 
     if (cmds) {
         sendZigbeeCommands(cmds)
