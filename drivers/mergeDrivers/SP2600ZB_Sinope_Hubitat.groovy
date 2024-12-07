@@ -291,7 +291,7 @@ def parse(String description) {
                         value = 'Sensor Error'
                     }
                     descriptionText = "Temperature of ${device.displayName} is at ${value}${unit}"
-                    if (floorLimitStatus != null) { // If floor heating device, refresh secondary temperature
+                    if (prefAirFloorModeParam != null) { // If floor heating device, refresh secondary temperature
                         runIn(1, refreshSecondTemp)
                     }
                     break
