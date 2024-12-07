@@ -28,6 +28,7 @@
  * v1.7.1 Correction of bug regarding logging debug and info
  * v2.0.0 Major code cleaning - Pseudo library being used - new capabilities added (2024-11-28)
  * v2.1.0 Add DR Icon (2023-12-02)
+ * v2.2.0 DR Icon for G2 and add max PI heating (2024-12-06)
  */
 
 metadata {
@@ -87,6 +88,7 @@ metadata {
         input name: 'prefSecondTempDisplay', type: 'enum', title: 'Secondary Temp. Display', options:['auto': 'Auto (default)', 'setpoint': 'Setpoint', 'outdoor': 'Outdoor'], defaultValue: 'auto', required: true
         input name: 'prefTimeFormatParam', type: 'enum', title: 'Time Format', options:['24h', '12h AM/PM'], defaultValue: '24h', multiple: false, required: true
         input name: 'prefCycleLength', type: 'enum', title: 'Thermostat Cycle Length', options: ['short', 'long'], defaultValue: 'short', multiple: false, required: true
+        input name: 'limitPIHeating', type: 'enum', title: 'Limit PI heating', description: 'Limit PI heating when DR Icon is on', options:[255: '100 (default)', 75: '75', 50: '50', 25: '25'], defaultValue: '255', required: true
         input name: 'tempChange', type: 'number', title: 'Temperature change', description: 'Minumum change of temperature reading to trigger report in Celsius/100, 5..50', range: '5..50', defaultValue: 50
         input name: 'heatingChange', type: 'number', title: 'Heating change', description: 'Minimum change in the PI heating in % to trigger power and PI heating reporting, 1..25', range: '1..25', defaultValue: 5
         input name: 'energyChange', type: 'number', title: 'Energy increment', description: 'Minimum increment of the energy meter in Wh to trigger energy reporting, 10..*', range: '10..*', defaultValue: 10
@@ -143,10 +145,10 @@ def configure() {
     }
 
     cmds += zigbee.configureReporting(0x0201, 0x0000, 0x29, 30, 580, (int) tempChange)                  // local temperature
-    cmds += zigbee.configureReporting(0x0201, 0x0008, 0x0020, 59, 590, (int) heatingChange)             // PI heating demand
+    cmds += zigbee.configureReporting(0x0201, 0x0008, 0x20, 59, 590, (int) heatingChange)               // PI heating demand
     cmds += zigbee.configureReporting(0x0702, 0x0000, DataType.UINT48, 59, 1799, (int) energyChange)    // Energy reading
     cmds += zigbee.configureReporting(0x0B04, 0x0505, 0x29, 30, 600)                                    // Voltage
-    cmds += zigbee.configureReporting(0x0201, 0x0012, 0x0029, 15, 302, 40)                              // occupied heating setpoint
+    cmds += zigbee.configureReporting(0x0201, 0x0012, 0x29, 15, 302, 40)                                // occupied heating setpoint
     cmds += zigbee.configureReporting(0x0204, 0x0000, 0x30, 1, 0)                                       // temperature display mode
     cmds += zigbee.configureReporting(0x0204, 0x0001, 0x30, 1, 0)                                       // keypad lockout
 
@@ -778,13 +780,25 @@ def resetYearlyEnergy() {
 //-- Thermostat specific function-------------------------------------------------------------------------
 def turnOnIconDR() {
     def cmds = []
-    cmds += zigbee.writeAttribute(0xFF01, 0x0071, DataType.INT8, (int) 0)
+    if (isG2Model()) {
+        cmds += zigbee.writeAttribute(0xFF01, 0x0071, 0x28, (int) -100)
+    }
+    else {
+        cmds += zigbee.writeAttribute(0xFF01, 0x0071, 0x28, (int) 0)
+    }
+    
+    if (limitPIHeating == null) {
+        limitPIHeating = '255'
+    }
+    cmds += zigbee.writeAttribute(0xFF01, 0x0072, 0x20, (int) Integer.parseInt(limitPIHeating))
     sendZigbeeCommands(cmds)
 }
 
 def turnOffIconDR() {
     def cmds = []
-    cmds += zigbee.writeAttribute(0xFF01, 0x0071, DataType.INT8, (int) -128)
+    cmds += zigbee.writeAttribute(0xFF01, 0x0071, 0x28, (int) -128)
+    cmds += zigbee.writeAttribute(0xFF01, 0x0072, 0x20, (int) 255)
+    cmds += zigbee.writeAttribute(0xFF01, 0x0073, 0x20, (int) 255)
     sendZigbeeCommands(cmds)
 }
 

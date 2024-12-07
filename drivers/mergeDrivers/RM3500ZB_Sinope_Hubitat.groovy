@@ -713,13 +713,25 @@ def resetYearlyEnergy() {
 //-- Thermostat specific function-------------------------------------------------------------------------
 def turnOnIconDR() {
     def cmds = []
-    cmds += zigbee.writeAttribute(0xFF01, 0x0071, DataType.INT8, (int) 0)
+    if (isG2Model()) {
+        cmds += zigbee.writeAttribute(0xFF01, 0x0071, 0x28, (int) -100)
+    }
+    else {
+        cmds += zigbee.writeAttribute(0xFF01, 0x0071, 0x28, (int) 0)
+    }
+    
+    if (limitPIHeating == null) {
+        limitPIHeating = '255'
+    }
+    cmds += zigbee.writeAttribute(0xFF01, 0x0072, 0x20, (int) Integer.parseInt(limitPIHeating))
     sendZigbeeCommands(cmds)
 }
 
 def turnOffIconDR() {
     def cmds = []
-    cmds += zigbee.writeAttribute(0xFF01, 0x0071, DataType.INT8, (int) -128)
+    cmds += zigbee.writeAttribute(0xFF01, 0x0071, 0x28, (int) -128)
+    cmds += zigbee.writeAttribute(0xFF01, 0x0072, 0x20, (int) 255)
+    cmds += zigbee.writeAttribute(0xFF01, 0x0073, 0x20, (int) 255)
     sendZigbeeCommands(cmds)
 }
 

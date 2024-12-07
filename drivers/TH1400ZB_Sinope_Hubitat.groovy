@@ -21,6 +21,7 @@
  * v2.0.0 Major code cleaning - Pseudo library being used (2024-11-28)
  * v2.1.0 Add floor temperature attributes and DR Icon (2024-12-02)
  * v2.1.1 Bug related to floor temperature and room temperatyre (2024-12-03)
+ * v2.2.0 DR Icon for G2 and add max PI heating (2024-12-06)
  */
 
 metadata
@@ -63,7 +64,8 @@ metadata
         input name: 'FloorLimitMinParam', type: 'number', title:'Floor low limit (5C to 36C / 41F to 97F)', description: 'The minimum temperature limit of the floor when in ambient control mode.', range:'5..97', required: false
         input name: 'FloorLimitMaxParam', type: 'number', title:'Floor high limit (5C to 36C / 41F to 97F)', description: 'The maximum temperature limit of the floor when in ambient control mode.', range:'5..97', required: false
         input name: 'AuxiliaryCycleLengthParam', type: 'enum', title:'Auxiliary cycle length', options: ['disable, 15 seconds', '30 minutes'], required: false
-        
+        input name: 'limitPIHeating', type: 'enum', title: 'Limit PI heating', description: 'Limit PI heating when DR Icon is on', options:[255: '100 (default)', 75: '75', 50: '50', 25: '25'], defaultValue: '255', required: true
+
         input name: 'tempChange', type: 'number', title: 'Temperature change', description: 'Minumum change of temperature reading to trigger report in Celsius/100, 5..50', range: '5..50', defaultValue: 50
         input name: 'heatingChange', type: 'number', title: 'Heating change', description: 'Minimum change in the PI heating in % to trigger power and PI heating reporting, 1..25', range: '1..25', defaultValue: 5
 
@@ -115,13 +117,12 @@ def configure() {
     }
 
     cmds += zigbee.configureReporting(0x0201, 0x0000, 0x29, 30, 580, (int) tempChange)      // local temperature
-    cmds += zigbee.configureReporting(0x0201, 0x0008, 0x0020, 59, 590, (int) heatingChange) // PI heating demand
-    cmds += zigbee.configureReporting(0x0201, 0x0012, 0x0029, 15, 302, 40)                  // occupied heating setpoint
+    cmds += zigbee.configureReporting(0x0201, 0x0008, 0x20, 59, 590, (int) heatingChange)   // PI heating demand
+    cmds += zigbee.configureReporting(0x0201, 0x0012, 0x29, 15, 302, 40)                    // occupied heating setpoint
     cmds += zigbee.configureReporting(0x0204, 0x0000, 0x30, 1, 0)                           // temperature display mode
     cmds += zigbee.configureReporting(0x0204, 0x0001, 0x30, 1, 0)                           // keypad lockout
     cmds += zigbee.configureReporting(0xFF01, 0x0115, 0x30, 10, 3600, 1)                    // report gfci status each hours
     cmds += zigbee.configureReporting(0xFF01, 0x010C, 0x30, 10, 3600, 1)                    // floor limit status each hours
-    cmds += zigbee.configureReporting(0xFF01, 0x0107, 0x29, 30, 580, (int) tempChange)      // floor temperature ???Seems to not work :(
 
     // Configure displayed scale
     if (getTemperatureScale() == 'C') {
