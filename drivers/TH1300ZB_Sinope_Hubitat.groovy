@@ -161,7 +161,7 @@ def configure() {
 
     cmds += zigbee.configureReporting(0x0201, 0x0000, 0x29, 30, 580, (int) tempChange)                  // local temperature
     cmds += zigbee.configureReporting(0x0201, 0x0008, 0x20, 59, 590, (int) heatingChange)               // PI heating demand
-    cmds += zigbee.configureReporting(0x0702, 0x0000, DataType.UINT48, 59, 1799, (int) energyChange)    // Energy reading
+    cmds += zigbee.configureReporting(0x0702, 0x0000, 0x25, 59, 1799, (int) energyChange)    // Energy reading
     cmds += zigbee.configureReporting(0x0201, 0x0012, 0x29, 15, 302, 40)                                // occupied heating setpoint
     cmds += zigbee.configureReporting(0x0204, 0x0000, 0x30, 1, 0)                                       // temperature display mode
     cmds += zigbee.configureReporting(0x0204, 0x0001, 0x30, 1, 0)                                       // keypad lockout
