@@ -34,7 +34,8 @@ metadata
         capability 'Lock'
         capability 'Notification' // Receiving temperature notifications via RuleEngine
 
-        attribute 'secondaryTemperature', 'number'
+        attribute 'floorTemperature', 'number'
+        attribute 'roomTemperature', 'number'
         attribute 'outdoorTemp', 'number'
         attribute 'heatingDemand', 'number'
 
@@ -97,10 +98,6 @@ def configure() {
     int timemin = Math.abs( new Random().nextInt() % 59)
     int timehour = Math.abs( new Random().nextInt() % 2)
     schedule(timesec + ' ' + timemin + ' ' + timehour + '/3 * * ? *', refreshTime) //refresh the clock at random begining and then every 3h
-
-    timesec = Math.abs( new Random().nextInt() % 59)
-    timemin = Math.abs( new Random().nextInt() % 59)
-    schedule(timesec + ' ' + timemin + '/5 * * * ? *', refreshSecondTemp) //refresh secondary temperature reading (floor or air)
 
     // Prepare our zigbee commands
     def cmds = []

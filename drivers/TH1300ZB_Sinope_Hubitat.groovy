@@ -44,7 +44,8 @@ metadata
         capability 'VoltageMeasurement'
         capability 'Notification' // Receiving temperature notifications via RuleEngine
 
-        attribute 'secondaryTemperature', 'number'
+        attribute 'floorTemperature', 'number'
+        attribute 'roomTemperature', 'number'
         attribute 'outdoorTemp', 'number'
         attribute 'heatingDemand', 'number'
         attribute 'maxPower', 'number'
@@ -138,10 +139,6 @@ def configure() {
     timemin = Math.abs( new Random().nextInt() % 59)
     timehour = Math.abs( new Random().nextInt() % 23)
     schedule(timesec + ' ' + timemin + ' ' + timehour + ' * * ? *', refreshMaxPower) //refresh maximum power capacity of the equipement wired to the thermostat one time per day at a random moment
-
-    timesec = Math.abs( new Random().nextInt() % 59)
-    timemin = Math.abs( new Random().nextInt() % 59)
-    schedule(timesec + ' ' + timemin + '/5 * * * ? *', refreshSecondTemp) //refresh secondary temperature reading (floor or air)
 
     energyScheduling()
 

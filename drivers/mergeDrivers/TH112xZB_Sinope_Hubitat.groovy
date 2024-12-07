@@ -379,6 +379,9 @@ def parse(String description) {
                         value = 'Sensor Error'
                     }
                     descriptionText = "Temperature of ${device.displayName} is at ${value}${unit}"
+                    if (floorLimitStatus != null) { // If floor heating device, refresh secondary temperature
+                        runIn(1, refreshSecondTemp)
+                    }
                     break
 
                 case 0x0008:
@@ -495,7 +498,7 @@ def parse(String description) {
                     break
 
                 case 0x0107: // https://github.com/claudegel/sinope-zha
-                    name = 'secondaryTemperature'
+                    name = 'floorTemperature'
                     value = getTemperature(descMap.value)
                     unit = getTemperatureScale()
                     descriptionText = "Floor temperature of ${device.displayName} is at ${value}${unit}"
@@ -521,7 +524,7 @@ def parse(String description) {
                     break
                 
                 case 0x010D: // https://github.com/claudegel/sinope-zha
-                    name = 'secondaryTemperature'
+                    name = 'roomTemperature'
                     value = getTemperature(descMap.value)
                     unit = getTemperatureScale()
                     descriptionText = "Room temperature of ${device.displayName} is at ${value}${unit}"
@@ -807,11 +810,8 @@ def refreshTemp() {
 
 def refreshSecondTemp() {
     def cmds = []
-    if (prefAirFloorModeParam == 'Ambient') { //Air mode
-        cmds += zigbee.readAttribute(0xFF01, 0x0107)  //Read Floor Temperature
-    } else { //Floor mode
-        cmds += zigbee.readAttribute(0xFF01, 0x010D)  //Read Room Temperature
-    }
+    cmds += zigbee.readAttribute(0xFF01, 0x0107)  //Read Floor Temperature
+    cmds += zigbee.readAttribute(0xFF01, 0x010D)  //Read Room Temperature
 
     if (cmds) {
         sendZigbeeCommands(cmds)
