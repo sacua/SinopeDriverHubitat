@@ -107,6 +107,9 @@ def parse(String description) {
                         value = 'Sensor Error'
                     }
                     descriptionText = "Temperature of ${device.displayName} is at ${value}${unit}"
+                    if (prefAirFloorModeParam != null) { // If floor heating device, refresh secondary temperature
+                        runIn(1, refreshSecondTemp)
+                    }
                     break
 
                 case 0x0008:
@@ -223,7 +226,7 @@ def parse(String description) {
                     break
 
                 case 0x0107: // https://github.com/claudegel/sinope-zha
-                    name = 'secondaryTemperature'
+                    name = 'floorTemperature'
                     value = getTemperature(descMap.value)
                     unit = getTemperatureScale()
                     descriptionText = "Floor temperature of ${device.displayName} is at ${value}${unit}"
@@ -249,7 +252,7 @@ def parse(String description) {
                     break
                 
                 case 0x010D: // https://github.com/claudegel/sinope-zha
-                    name = 'secondaryTemperature'
+                    name = 'roomTemperature'
                     value = getTemperature(descMap.value)
                     unit = getTemperatureScale()
                     descriptionText = "Room temperature of ${device.displayName} is at ${value}${unit}"
@@ -508,13 +511,19 @@ def resetYearlyEnergy() {
 //-- Thermostat specific function-------------------------------------------------------------------------
 def turnOnIconDR() {
     def cmds = []
-    cmds += zigbee.writeAttribute(0xFF01, 0x0071, DataType.INT8, (int) 0)
+    cmds += zigbee.writeAttribute(0xFF01, 0x0071, 0x28, (int) 0)
+    if (limitPIHeating == null) {
+        limitPIHeating = '255'
+    }
+    cmds += zigbee.writeAttribute(0xFF01, 0x0072, 0x20, (int) Integer.parseInt(limitPIHeating))
     sendZigbeeCommands(cmds)
 }
 
 def turnOffIconDR() {
     def cmds = []
-    cmds += zigbee.writeAttribute(0xFF01, 0x0071, DataType.INT8, (int) -128)
+    cmds += zigbee.writeAttribute(0xFF01, 0x0071, 0x28, (int) -128)
+    cmds += zigbee.writeAttribute(0xFF01, 0x0072, 0x20, (int) 255)
+    cmds += zigbee.writeAttribute(0xFF01, 0x0073, 0x20, (int) 255)
     sendZigbeeCommands(cmds)
 }
 
@@ -529,11 +538,8 @@ def refreshTemp() {
 
 def refreshSecondTemp() {
     def cmds = []
-    if (prefAirFloorModeParam == 'Ambient') { //Air mode
-        cmds += zigbee.readAttribute(0xFF01, 0x0107)  //Read Floor Temperature
-    } else { //Floor mode
-        cmds += zigbee.readAttribute(0xFF01, 0x010D)  //Read Room Temperature
-    }
+    cmds += zigbee.readAttribute(0xFF01, 0x0107)  //Read Floor Temperature
+    cmds += zigbee.readAttribute(0xFF01, 0x010D)  //Read Room Temperature
 
     if (cmds) {
         sendZigbeeCommands(cmds)
@@ -556,7 +562,7 @@ def refreshTime() {
     def thermostatTimeSec = thermostatDate.getTime() / 1000
     def thermostatTimezoneOffsetSec = thermostatDate.getTimezoneOffset() * 60
     int currentTimeToDisplay = Math.round(thermostatTimeSec - thermostatTimezoneOffsetSec - 946684800) //time from 2000-01-01 00:00
-    cmds += zigbee.writeAttribute(0xFF01, 0x0020, DataType.UINT32, currentTimeToDisplay, [mfgCode: '0x119C'])
+    cmds += zigbee.writeAttribute(0xFF01, 0x0020, 0x23, currentTimeToDisplay, [mfgCode: '0x119C'])
 
     if (cmds) {
         sendZigbeeCommands(cmds)
@@ -662,7 +668,7 @@ def unlock() {
     sendEvent(name: 'lock', value: 'unlocked')
 
     def cmds = []
-    cmds += zigbee.writeAttribute(0x0204, 0x0001, DataType.ENUM8, 0x00)
+    cmds += zigbee.writeAttribute(0x0204, 0x0001, 0x30, 0x00)
 
     sendZigbeeCommands(cmds)
 }
@@ -672,7 +678,7 @@ def lock() {
     sendEvent(name: 'lock', value: 'locked')
 
     def cmds = []
-    cmds += zigbee.writeAttribute(0x0204, 0x0001, DataType.ENUM8, 0x01)
+    cmds += zigbee.writeAttribute(0x0204, 0x0001, 0x30, 0x01)
 
     sendZigbeeCommands(cmds)
 }
@@ -691,7 +697,7 @@ def deviceNotification(text) {
 
         def int outdoorTempDevice = outdoorTemp * 100  // device expects hundredths
         def cmds = []
-        cmds += zigbee.writeAttribute(0xFF01, 0x0010, DataType.INT16, outdoorTempDevice, [mfgCode: '0x119C']) //set the outdoor temperature as integer
+        cmds += zigbee.writeAttribute(0xFF01, 0x0010, 0x29, outdoorTempDevice, [mfgCode: '0x119C']) //set the outdoor temperature as integer
         sendZigbeeCommands(cmds)
     }
 }
@@ -714,7 +720,7 @@ private setBacklightMode(mode = prefBacklightMode) {
     logDebug("setting display backlight to ${mode} (${backlightModeAttr})")
     device.updateSetting('prefBacklightMode', [value: mode, type: 'enum'])
     def cmds = []
-    cmds += zigbee.writeAttribute(0x0201, 0x0402, DataType.ENUM8, backlightModeAttr, [mfgCode: '0x119C'])
+    cmds += zigbee.writeAttribute(0x0201, 0x0402, 0x30, backlightModeAttr, [mfgCode: '0x119C'])
     sendZigbeeCommands(cmds) // Submit zigbee commands
 }
 
@@ -724,7 +730,7 @@ private setSecondTempDisplay(mode = prefSecondTempDisplay) {
         logDebug("setting secondary temperature display to ${mode} (${secondDisplaySetting})")
         device.updateSetting('prefSecondTempDisplay', [value: mode, type: 'enum'])
         def cmds = []
-        cmds += zigbee.writeAttribute(0xFF01, 0x0012, DataType.ENUM8, secondDisplaySetting, [mfgCode: '0x119C'])
+        cmds += zigbee.writeAttribute(0xFF01, 0x0012, 0x30, secondDisplaySetting, [mfgCode: '0x119C'])
         sendZigbeeCommands(cmds) // Submit zigbee commands
     }
     else
@@ -743,7 +749,7 @@ private setThermostatCycle(cycle = prefCycleLength) {
         logDebug("setting thermostat cycle to ${cycle} (${shortCycleAttr})")
         device.updateSetting('prefCycleLength', [value: cycle, type: 'enum'])
         def cmds = []
-        cmds += zigbee.writeAttribute(0x0201, 0x0401, DataType.UINT16, shortCycleAttr, [mfgCode: '0x119C'])
+        cmds += zigbee.writeAttribute(0x0201, 0x0401, 0x21, shortCycleAttr, [mfgCode: '0x119C'])
         sendZigbeeCommands(cmds)
     }
 }
@@ -765,13 +771,13 @@ private getLockMap() {
 //-- Water heater function--------------------------------------------------------------------------------
 def enableSafetyWaterTemp() {
     def cmds = []
-    cmds += zigbee.writeAttribute(0xFF01, 0x0076, DataType.UINT8, 45, [mfgCode: '0x119C'])
+    cmds += zigbee.writeAttribute(0xFF01, 0x0076, 0x20, 45, [mfgCode: '0x119C'])
     sendZigbeeCommands(cmds)
 }
 
 def disableSafetyWaterTemp() {
     def cmds = []
-    cmds += zigbee.writeAttribute(0xFF01, 0x0076, DataType.UINT8, 0, [mfgCode: '0x119C'])
+    cmds += zigbee.writeAttribute(0xFF01, 0x0076, 0x20, 0, [mfgCode: '0x119C'])
     sendZigbeeCommands(cmds)
 }
 

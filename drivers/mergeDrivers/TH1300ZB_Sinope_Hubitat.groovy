@@ -28,6 +28,7 @@
  * v2.0.0 Major code cleaning - Pseudo library being used - new capabilities added (2024-11-28)
  * v2.1.0 Add floor temperature attributes and DR Icon (2024-12-02)
  * v2.1.1 Bug related to floor temperature and room temperatyre (2024-12-03)
+ * v2.2.0 Add max PI heating and floor/room temperature bug fix (2024-12-08)
  */
 
 metadata
@@ -43,7 +44,8 @@ metadata
         capability 'VoltageMeasurement'
         capability 'Notification' // Receiving temperature notifications via RuleEngine
 
-        attribute 'secondaryTemperature', 'number'
+        attribute 'floorTemperature', 'number'
+        attribute 'roomTemperature', 'number'
         attribute 'outdoorTemp', 'number'
         attribute 'heatingDemand', 'number'
         attribute 'maxPower', 'number'
@@ -95,7 +97,8 @@ metadata
         input name: 'FloorMaxAirTemperatureParam', type: 'number', title:'Ambient high limit (5C to 36C / 41F to 97F)', description: 'The maximum ambient temperature limit when in floor control mode.', range: '5..97', required: false
         input name: 'FloorLimitMinParam', type: 'number', title:'Floor low limit (5C to 36C / 41F to 97F)', description: 'The minimum temperature limit of the floor when in ambient control mode.', range:'5..97', required: false
         input name: 'FloorLimitMaxParam', type: 'number', title:'Floor high limit (5C to 36C / 41F to 97F)', description: 'The maximum temperature limit of the floor when in ambient control mode.', range:'5..97', required: false
-        
+        input name: 'limitPIHeating', type: 'enum', title: 'Limit PI heating', description: 'Limit PI heating when DR Icon is on', options:[255: '100 (default)', 75: '75', 50: '50', 25: '25'], defaultValue: '255', required: true
+
         input name: 'tempChange', type: 'number', title: 'Temperature change', description: 'Minumum change of temperature reading to trigger report in Celsius/100, 5..50', range: '5..50', defaultValue: 50
         input name: 'heatingChange', type: 'number', title: 'Heating change', description: 'Minimum change in the PI heating in % to trigger power and PI heating reporting, 1..25', range: '1..25', defaultValue: 5
         input name: 'energyChange', type: 'number', title: 'Energy increment', description: 'Minimum increment of the energy meter in Wh to trigger energy reporting, 10..*', range: '10..*', defaultValue: 10
@@ -137,10 +140,6 @@ def configure() {
     timehour = Math.abs( new Random().nextInt() % 23)
     schedule(timesec + ' ' + timemin + ' ' + timehour + ' * * ? *', refreshMaxPower) //refresh maximum power capacity of the equipement wired to the thermostat one time per day at a random moment
 
-    timesec = Math.abs( new Random().nextInt() % 59)
-    timemin = Math.abs( new Random().nextInt() % 59)
-    schedule(timesec + ' ' + timemin + '/5 * * * ? *', refreshSecondTemp) //refresh secondary temperature reading (floor or air)
-
     energyScheduling()
 
     // Prepare our zigbee commands
@@ -158,14 +157,13 @@ def configure() {
     }
 
     cmds += zigbee.configureReporting(0x0201, 0x0000, 0x29, 30, 580, (int) tempChange)                  // local temperature
-    cmds += zigbee.configureReporting(0x0201, 0x0008, 0x0020, 59, 590, (int) heatingChange)             // PI heating demand
-    cmds += zigbee.configureReporting(0x0702, 0x0000, DataType.UINT48, 59, 1799, (int) energyChange)    // Energy reading
-    cmds += zigbee.configureReporting(0x0201, 0x0012, 0x0029, 15, 302, 40)                              // occupied heating setpoint
+    cmds += zigbee.configureReporting(0x0201, 0x0008, 0x20, 59, 590, (int) heatingChange)               // PI heating demand
+    cmds += zigbee.configureReporting(0x0702, 0x0000, 0x25, 59, 1799, (int) energyChange)    // Energy reading
+    cmds += zigbee.configureReporting(0x0201, 0x0012, 0x29, 15, 302, 40)                                // occupied heating setpoint
     cmds += zigbee.configureReporting(0x0204, 0x0000, 0x30, 1, 0)                                       // temperature display mode
     cmds += zigbee.configureReporting(0x0204, 0x0001, 0x30, 1, 0)                                       // keypad lockout
     cmds += zigbee.configureReporting(0xFF01, 0x0115, 0x30, 10, 3600, 1)                                // report gfci status each hours
     cmds += zigbee.configureReporting(0xFF01, 0x010C, 0x30, 10, 3600, 1)                                // floor limit status each hours
-    cmds += zigbee.configureReporting(0xFF01, 0x0107, 0x29, 30, 580, (int) tempChange)                  // floor temperature ???Seems to not work :(
     cmds += zigbee.configureReporting(0x0B04, 0x0505, 0x29, 30, 600)                                    // Voltage
 
     // Configure displayed scale
@@ -458,6 +456,9 @@ def parse(String description) {
                         value = 'Sensor Error'
                     }
                     descriptionText = "Temperature of ${device.displayName} is at ${value}${unit}"
+                    if (prefAirFloorModeParam != null) { // If floor heating device, refresh secondary temperature
+                        runIn(1, refreshSecondTemp)
+                    }
                     break
 
                 case 0x0008:
@@ -574,7 +575,7 @@ def parse(String description) {
                     break
 
                 case 0x0107: // https://github.com/claudegel/sinope-zha
-                    name = 'secondaryTemperature'
+                    name = 'floorTemperature'
                     value = getTemperature(descMap.value)
                     unit = getTemperatureScale()
                     descriptionText = "Floor temperature of ${device.displayName} is at ${value}${unit}"
@@ -600,7 +601,7 @@ def parse(String description) {
                     break
                 
                 case 0x010D: // https://github.com/claudegel/sinope-zha
-                    name = 'secondaryTemperature'
+                    name = 'roomTemperature'
                     value = getTemperature(descMap.value)
                     unit = getTemperatureScale()
                     descriptionText = "Room temperature of ${device.displayName} is at ${value}${unit}"
@@ -859,13 +860,19 @@ def resetYearlyEnergy() {
 //-- Thermostat specific function-------------------------------------------------------------------------
 def turnOnIconDR() {
     def cmds = []
-    cmds += zigbee.writeAttribute(0xFF01, 0x0071, DataType.INT8, (int) 0)
+    cmds += zigbee.writeAttribute(0xFF01, 0x0071, 0x28, (int) 0)
+    if (limitPIHeating == null) {
+        limitPIHeating = '255'
+    }
+    cmds += zigbee.writeAttribute(0xFF01, 0x0072, 0x20, (int) Integer.parseInt(limitPIHeating))
     sendZigbeeCommands(cmds)
 }
 
 def turnOffIconDR() {
     def cmds = []
-    cmds += zigbee.writeAttribute(0xFF01, 0x0071, DataType.INT8, (int) -128)
+    cmds += zigbee.writeAttribute(0xFF01, 0x0071, 0x28, (int) -128)
+    cmds += zigbee.writeAttribute(0xFF01, 0x0072, 0x20, (int) 255)
+    cmds += zigbee.writeAttribute(0xFF01, 0x0073, 0x20, (int) 255)
     sendZigbeeCommands(cmds)
 }
 
@@ -880,11 +887,8 @@ def refreshTemp() {
 
 def refreshSecondTemp() {
     def cmds = []
-    if (prefAirFloorModeParam == 'Ambient') { //Air mode
-        cmds += zigbee.readAttribute(0xFF01, 0x0107)  //Read Floor Temperature
-    } else { //Floor mode
-        cmds += zigbee.readAttribute(0xFF01, 0x010D)  //Read Room Temperature
-    }
+    cmds += zigbee.readAttribute(0xFF01, 0x0107)  //Read Floor Temperature
+    cmds += zigbee.readAttribute(0xFF01, 0x010D)  //Read Room Temperature
 
     if (cmds) {
         sendZigbeeCommands(cmds)
@@ -907,7 +911,7 @@ def refreshTime() {
     def thermostatTimeSec = thermostatDate.getTime() / 1000
     def thermostatTimezoneOffsetSec = thermostatDate.getTimezoneOffset() * 60
     int currentTimeToDisplay = Math.round(thermostatTimeSec - thermostatTimezoneOffsetSec - 946684800) //time from 2000-01-01 00:00
-    cmds += zigbee.writeAttribute(0xFF01, 0x0020, DataType.UINT32, currentTimeToDisplay, [mfgCode: '0x119C'])
+    cmds += zigbee.writeAttribute(0xFF01, 0x0020, 0x23, currentTimeToDisplay, [mfgCode: '0x119C'])
 
     if (cmds) {
         sendZigbeeCommands(cmds)
@@ -1013,7 +1017,7 @@ def unlock() {
     sendEvent(name: 'lock', value: 'unlocked')
 
     def cmds = []
-    cmds += zigbee.writeAttribute(0x0204, 0x0001, DataType.ENUM8, 0x00)
+    cmds += zigbee.writeAttribute(0x0204, 0x0001, 0x30, 0x00)
 
     sendZigbeeCommands(cmds)
 }
@@ -1023,7 +1027,7 @@ def lock() {
     sendEvent(name: 'lock', value: 'locked')
 
     def cmds = []
-    cmds += zigbee.writeAttribute(0x0204, 0x0001, DataType.ENUM8, 0x01)
+    cmds += zigbee.writeAttribute(0x0204, 0x0001, 0x30, 0x01)
 
     sendZigbeeCommands(cmds)
 }
@@ -1042,7 +1046,7 @@ def deviceNotification(text) {
 
         def int outdoorTempDevice = outdoorTemp * 100  // device expects hundredths
         def cmds = []
-        cmds += zigbee.writeAttribute(0xFF01, 0x0010, DataType.INT16, outdoorTempDevice, [mfgCode: '0x119C']) //set the outdoor temperature as integer
+        cmds += zigbee.writeAttribute(0xFF01, 0x0010, 0x29, outdoorTempDevice, [mfgCode: '0x119C']) //set the outdoor temperature as integer
         sendZigbeeCommands(cmds)
     }
 }
@@ -1065,7 +1069,7 @@ private setBacklightMode(mode = prefBacklightMode) {
     logDebug("setting display backlight to ${mode} (${backlightModeAttr})")
     device.updateSetting('prefBacklightMode', [value: mode, type: 'enum'])
     def cmds = []
-    cmds += zigbee.writeAttribute(0x0201, 0x0402, DataType.ENUM8, backlightModeAttr, [mfgCode: '0x119C'])
+    cmds += zigbee.writeAttribute(0x0201, 0x0402, 0x30, backlightModeAttr, [mfgCode: '0x119C'])
     sendZigbeeCommands(cmds) // Submit zigbee commands
 }
 
@@ -1075,7 +1079,7 @@ private setSecondTempDisplay(mode = prefSecondTempDisplay) {
         logDebug("setting secondary temperature display to ${mode} (${secondDisplaySetting})")
         device.updateSetting('prefSecondTempDisplay', [value: mode, type: 'enum'])
         def cmds = []
-        cmds += zigbee.writeAttribute(0xFF01, 0x0012, DataType.ENUM8, secondDisplaySetting, [mfgCode: '0x119C'])
+        cmds += zigbee.writeAttribute(0xFF01, 0x0012, 0x30, secondDisplaySetting, [mfgCode: '0x119C'])
         sendZigbeeCommands(cmds) // Submit zigbee commands
     }
     else
@@ -1094,7 +1098,7 @@ private setThermostatCycle(cycle = prefCycleLength) {
         logDebug("setting thermostat cycle to ${cycle} (${shortCycleAttr})")
         device.updateSetting('prefCycleLength', [value: cycle, type: 'enum'])
         def cmds = []
-        cmds += zigbee.writeAttribute(0x0201, 0x0401, DataType.UINT16, shortCycleAttr, [mfgCode: '0x119C'])
+        cmds += zigbee.writeAttribute(0x0201, 0x0401, 0x21, shortCycleAttr, [mfgCode: '0x119C'])
         sendZigbeeCommands(cmds)
     }
 }
@@ -1116,13 +1120,13 @@ private getLockMap() {
 //-- Water heater function--------------------------------------------------------------------------------
 def enableSafetyWaterTemp() {
     def cmds = []
-    cmds += zigbee.writeAttribute(0xFF01, 0x0076, DataType.UINT8, 45, [mfgCode: '0x119C'])
+    cmds += zigbee.writeAttribute(0xFF01, 0x0076, 0x20, 45, [mfgCode: '0x119C'])
     sendZigbeeCommands(cmds)
 }
 
 def disableSafetyWaterTemp() {
     def cmds = []
-    cmds += zigbee.writeAttribute(0xFF01, 0x0076, DataType.UINT8, 0, [mfgCode: '0x119C'])
+    cmds += zigbee.writeAttribute(0xFF01, 0x0076, 0x20, 0, [mfgCode: '0x119C'])
     sendZigbeeCommands(cmds)
 }
 

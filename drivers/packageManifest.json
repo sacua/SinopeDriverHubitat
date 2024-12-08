@@ -3,7 +3,7 @@
   "author": "Samuel C. Auclair",
   "minimumHEVersion": "2.1.9",
   "dateReleased": "2023-02-12",
-  "releaseNotes": "2024-12-03 Bug fix for floor and air temperature reporting related to floor heating thermostat, fingerprint update related to SP2600ZB\n2024-12-02 Add floor temperature attribure and DR Icon\n2024-11-28 Major code cleaning with speudo library and few attributes added\n2024-05-28 Modification of TH13000ZB so works with new dashboard\n2023-03-26 Correction of bug regarding logging debug and info for TH112xZB\n2023-03-12 Adding cycle lenght control for TH112xZB thanks to iamtrep. Usefull for heating with fan\n2023-03-10 Add backlight control for TH112xZB gen-2\n2023-02-19 Bug corrections for the yearly energy reset\n2023-02-17 Modification in the RM3500ZB driver, add functionnality and better code construction\n2023-02-14 Cosmetic change and better description in the RM3500ZB driver\n2023-02-13 Remove some bugs in the RM3500ZB driver\n2023-02-12 Adding RM3500ZB calypso water heater controller driver\n2023-02-07 Correct typo mistake in RM3205ZB driver\nEnable custom energy reset time and manual reset for the energy meter. Enable debug parse.",
+  "releaseNotes": "2024-12-08 Add max PI heating and floor/room temperature bug fix \n2024-12-03 Bug fix for floor and air temperature reporting related to floor heating thermostat, fingerprint update related to SP2600ZB\n2024-12-02 Add floor temperature attribure and DR Icon\n2024-11-28 Major code cleaning with speudo library and few attributes added\n2024-05-28 Modification of TH13000ZB so works with new dashboard\n2023-03-26 Correction of bug regarding logging debug and info for TH112xZB\n2023-03-12 Adding cycle lenght control for TH112xZB thanks to iamtrep. Usefull for heating with fan\n2023-03-10 Add backlight control for TH112xZB gen-2\n2023-02-19 Bug corrections for the yearly energy reset\n2023-02-17 Modification in the RM3500ZB driver, add functionnality and better code construction\n2023-02-14 Cosmetic change and better description in the RM3500ZB driver\n2023-02-13 Remove some bugs in the RM3500ZB driver\n2023-02-12 Adding RM3500ZB calypso water heater controller driver\n2023-02-07 Correct typo mistake in RM3205ZB driver\nEnable custom energy reset time and manual reset for the energy meter. Enable debug parse.",
   "communityLink": "https://community.hubitat.com/t/drivers-for-zigbee-sinope-devices/91960",
   "drivers": [
     {
@@ -12,7 +12,7 @@
       "namespace": "sacua",
       "location": "https://raw.githubusercontent.com/sacua/SinopeDriverHubitat/main/drivers/mergeDrivers/TH112xZB_Sinope_Hubitat.groovy",
       "required": false,
-      "version": "2.1.0"
+      "version": "2.2.0"
     },
     {
       "id": "180d831e-22b7-4349-946f-5dd1d12e36c0",
@@ -20,7 +20,7 @@
       "namespace": "sacua",
       "location": "https://raw.githubusercontent.com/sacua/SinopeDriverHubitat/main/drivers/mergeDrivers/TH1300ZB_Sinope_Hubitat.groovy",
       "required": false,
-      "version": "2.1.1"
+      "version": "2.2.0"
     },
     {
       "id": "65241f08-4e08-42cc-ba21-21fe2799c88b",
@@ -28,7 +28,7 @@
       "namespace": "sacua",
       "location": "https://raw.githubusercontent.com/sacua/SinopeDriverHubitat/main/drivers/mergeDrivers/TH1400ZB_Sinope_Hubitat.groovy",
       "required": false,
-      "version": "2.1.1"
+      "version": "2.2.0"
     },
     {
       "id": "529918c4-f8ed-4fda-8ce4-1f68d34af962",
