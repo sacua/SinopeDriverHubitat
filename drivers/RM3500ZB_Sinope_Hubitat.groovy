@@ -19,8 +19,6 @@
  * v2.0.0 Major code cleaning - Pseudo library being used (2024-11-28)
  */
 
-#include sacua.sinopeDriverLibrary
-
 metadata
 {
     definition(name: 'Water heater controller RM3500ZB with energy meter', namespace: 'sacua', author: 'Samuel Cuerrier Auclair') {

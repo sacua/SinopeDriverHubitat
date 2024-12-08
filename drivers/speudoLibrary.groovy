@@ -1,11 +1,3 @@
-library (
- author: "Samuel C. Auclair",
- category: "drivers",
- description: "library for Sinope driver",
- name: "sinopeDriverLibrary",
- namespace: "sacua",
- documentationLink: "https://community.hubitat.com/t/release-sinope-device-drivers-with-advanced-functionality"
-)
 /**
  *  Speudo library that is used with Sinope drivers
  *  Source: https://github.com/sacua/SinopeDriverHubitat/blob/main/drivers/speudoLibrary.groovy
@@ -23,7 +15,6 @@ library (
  * v1.1.0 Add floor temperature reading and DR Icon (2024-12-02)
  * v1.1.1 Bug related to floor temperature and room temperatyre (2024-12-03)
  */
-
 
 // Constants
 import groovy.transform.Field
