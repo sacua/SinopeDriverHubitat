@@ -28,7 +28,7 @@
  * v2.0.0 Major code cleaning - Pseudo library being used - new capabilities added (2024-11-28)
  * v2.1.0 Add floor temperature attributes and DR Icon (2024-12-02)
  * v2.1.1 Bug related to floor temperature and room temperatyre (2024-12-03)
- * v2.2.0 DR Icon for G2 and add max PI heating (2024-12-06)
+ * v2.2.0 Add max PI heating and floor/room temperature bug fix (2024-12-08)
  */
 
 metadata
