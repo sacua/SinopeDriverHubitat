@@ -60,7 +60,7 @@
       "id": "d3b2174c-5a9e-4f43-8e15-61d4a5f2679e",
       "name": "library for Sinope driver",
       "namespace": "sacua",
-      "location": "https://raw.githubusercontent.com/sacua/SinopeDriverHubitat/refs/heads/dev/speudoLibrary.groovy",
+      "location": "https://raw.githubusercontent.com/sacua/SinopeDriverHubitat/refs/heads/dev/drivers/speudoLibrary.groovy",
       "required": true,
       "version": "1.1.1"
     }
