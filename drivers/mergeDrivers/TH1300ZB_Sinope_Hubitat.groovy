@@ -29,6 +29,7 @@
  * v2.1.0 Add floor temperature attributes and DR Icon (2024-12-02)
  * v2.1.1 Bug related to floor temperature and room temperatyre (2024-12-03)
  * v2.2.0 Add max PI heating and floor/room temperature bug fix (2024-12-08)
+ * v2.2.1 Library fix (2024-12-13)
  */
 
 metadata
@@ -363,6 +364,7 @@ def off() {
  * v1.0.0 Initial commit (2024-11-28)
  * v1.1.0 Add floor temperature reading and DR Icon (2024-12-02)
  * v1.1.1 Bug related to floor temperature and room temperatyre (2024-12-03)
+ * v1.1.2 Bug fix related to zero value (2024-12-13)
  */
 
 // Constants
@@ -535,14 +537,14 @@ def parse(String description) {
                     name = 'voltage'
                     value = getRMSVoltage(descMap.value)
                     unit = 'V'
-                    descriptionText = "Voltage is ${value} ${unit}"
+                    descriptionText = "Voltage of ${device.displayName} is ${value} ${unit}"
                     break
 
                 case 0x0508:
                     name = 'amperage'
                     value = getRMSCurrent(descMap.value)
                     unit = 'A'
-                    descriptionText = "Current is ${value} ${unit}"
+                    descriptionText = "Current of ${device.displayName} is ${value} ${unit}"
                     break
 
                 case 0x050B:
@@ -550,6 +552,8 @@ def parse(String description) {
                     value = getActivePower(descMap.value)
                     unit = 'W'
                     descriptionText = "${device.displayName} is delivering ${value}${unit}"
+                    state.lastPowerReceivedAt= now()
+                    logDebug("POWER DEBUG cluster ${descMap.cluster} attribute ${descMap.attrId} value ${descMap.value}")
                     break
 
                 case 0x050D:
@@ -618,7 +622,7 @@ def parse(String description) {
                     descriptionText = "The gfci status of ${device.displayName} is ${value}}"
                     break
                 default:
-                    //logDebug("unhandled custom attribute report - cluster ${descMap.cluster} attribute ${descMap.attrId} value ${descMap.value}")
+                    logDebug("unhandled custom attribute report - cluster ${descMap.cluster} attribute ${descMap.attrId} value ${descMap.value}")
                     break
             }
             break
@@ -628,7 +632,7 @@ def parse(String description) {
             break
     }
 
-    if (value) {
+    if (descriptionText) {
         sendEvent(name:name, value:value, descriptionText:descriptionText, unit:unit, type:type)
     }
 }
@@ -1149,6 +1153,7 @@ private getSafetyWaterTemperature(value) {
             return 'false'
     }
 }
+
 
 //-- Other generic functions -----------------------------------------------------------------------------------
 private getTemperature(value) {

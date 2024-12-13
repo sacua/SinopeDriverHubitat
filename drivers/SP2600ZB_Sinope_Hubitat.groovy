@@ -18,6 +18,7 @@
  * v1.3.1 Correction of bug for the reset of energy meter
  * v2.0.0 Major code cleaning - Pseudo library being used - new capabilities added (2024-11-28)
  * v2.0.1 Update fingerprint (2024-12-03)
+ * v2.0.2 Update voltage reporting and library fix (2024-12-11)
  */
 
 metadata
@@ -93,7 +94,7 @@ def configure() {
 
     // Configure Reporting
     cmds += zigbee.configureReporting(0x0006, 0x0000, 0x10, 0, 600, null)                               // On off state
-    cmds += zigbee.configureReporting(0x0B04, 0x0505, 0x29, 30, 600)                                    // Voltage
+    cmds += zigbee.configureReporting(0x0B04, 0x0505, 0x29, 30, 600, 100)                               // Voltage
     cmds += zigbee.configureReporting(0x0B04, 0x050B, 0x29, 30, 600, (int) powerReport)                 // Power report
     cmds += zigbee.configureReporting(0x0702, 0x0000, DataType.UINT48, 59, 1799, (int) energyChange)    // Energy reading
 

@@ -29,6 +29,7 @@
  * v2.0.0 Major code cleaning - Pseudo library being used - new capabilities added (2024-11-28)
  * v2.1.0 Add DR Icon (2023-12-02)
  * v2.2.0 Add max PI heating (2024-12-06)
+ * v2.2.1 Library fix (2024-12-13)
  */
 
 metadata {

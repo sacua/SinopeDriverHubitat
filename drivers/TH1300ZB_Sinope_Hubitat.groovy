@@ -29,6 +29,7 @@
  * v2.1.0 Add floor temperature attributes and DR Icon (2024-12-02)
  * v2.1.1 Bug related to floor temperature and room temperatyre (2024-12-03)
  * v2.2.0 Add max PI heating and floor/room temperature bug fix (2024-12-08)
+ * v2.2.1 Library fix (2024-12-13)
  */
 
 metadata

@@ -17,6 +17,7 @@
  * v1.1.0 Change reporting, add attributes and improve codes
  * v1.1.1 Typo
  * v2.0.0 Major code cleaning - Pseudo library being used (2024-11-28)
+ * v2.0.1 Remove currentMeter (not fully supported) and library fix (2024-12-11)
  */
 
 metadata
@@ -26,11 +27,9 @@ metadata
         capability 'Configuration'
         capability 'Refresh'
         capability 'Outlet'
-        capability 'CurrentMeter'
         capability 'PowerMeter'
         capability 'EnergyMeter'
         capability 'TemperatureMeasurement'
-        capability 'CurrentMeter'
         capability 'VoltageMeasurement'
         capability 'WaterSensor'
 
@@ -120,9 +119,8 @@ def configure() {
     cmds += zigbee.configureReporting(0x0402, 0x0000, 0x29, 30, 580, (int) tempChange)                                  // Water temperature
     cmds += zigbee.configureReporting(0x0500, 0x0002, DataType.BITMAP16, 0, Integer.parseInt(waterReportingSeconds))    // Water lear sensor state
     cmds += zigbee.configureReporting(0x0006, 0x0000, 0x10, 0, Integer.parseInt(switchReportingSeconds))                // Heater On/off state
-    cmds += zigbee.configureReporting(0x0B04, 0x0505, 0x29, 30, 600)                                                    // Voltage
-    cmds += zigbee.configureReporting(0x0B04, 0x0508, 0x29, 30, 600)                                                    // Current
-    cmds += zigbee.configureReporting(0x0B04, 0x050B, 0x29, 30, 600, (int) powerReport)                                 // Active power reporting
+    cmds += zigbee.configureReporting(0x0B04, 0x0505, 0x29, 30, 600, 1)                                                 // Voltage
+    cmds += zigbee.configureReporting(0x0B04, 0x050B, 0x29, 30, 120, (int) powerReport)                                 // Active power reporting (Monitor more closely so configure the 0 value in the driver, since the 0 is never send...)
     cmds += zigbee.configureReporting(0x0702, 0x0000, DataType.UINT48, 299, 1799, (int) energyChange)                   // Energy reading
     cmds += zigbee.configureReporting(0xFF01, 0x0076, DataType.UINT8, 0, 86400, null, [mfgCode: '0x119C'])              // Safety water temp reporting every 24 hours
 
@@ -148,11 +146,10 @@ def refresh() {
     def cmds = []
     cmds += zigbee.readAttribute(0x0402, 0x0000)                        // Read Local Temperature
     cmds += zigbee.readAttribute(0x0500, 0x0002)                        // Read Water leak
-    cmds += zigbee.readAttribute(0xFF01, 0x0076, [mfgCode: '0x119C'])   //Read state of water temp safety setting (45 or 0)
+    cmds += zigbee.readAttribute(0xFF01, 0x0076, [mfgCode: '0x119C'])   // Read state of water temp safety setting (45 or 0)
     cmds += zigbee.readAttribute(0x0006, 0x0000)                        // Read On off state
     cmds += zigbee.readAttribute(0x0B04, 0x050B)                        // Read thermostat Active power
     cmds += zigbee.readAttribute(0x0B04, 0x0505)                        // Read voltage
-    cmds += zigbee.readAttribute(0x0B04, 0x0508)                        // Read amperage
     cmds += zigbee.readAttribute(0x0702, 0x0000)                        // Read energy delivered
 
     if (cmds) {
