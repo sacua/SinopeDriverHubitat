@@ -120,7 +120,7 @@ def configure() {
     cmds += zigbee.configureReporting(0x0500, 0x0002, DataType.BITMAP16, 0, Integer.parseInt(waterReportingSeconds))    // Water lear sensor state
     cmds += zigbee.configureReporting(0x0006, 0x0000, 0x10, 0, Integer.parseInt(switchReportingSeconds))                // Heater On/off state
     cmds += zigbee.configureReporting(0x0B04, 0x0505, 0x29, 30, 600, 1)                                                 // Voltage
-    cmds += zigbee.configureReporting(0x0B04, 0x050B, 0x29, 30, 120, (int) powerReport)                                 // Active power reporting (Monitor more closely so configure the 0 value in the driver, since the 0 is never send...)
+    cmds += zigbee.configureReporting(0x0B04, 0x050B, 0x29, 30, 600, (int) powerReport)                                 // Active power reporting (Monitor more closely so configure the 0 value in the driver, since the 0 is never send...)
     cmds += zigbee.configureReporting(0x0702, 0x0000, DataType.UINT48, 299, 1799, (int) energyChange)                   // Energy reading
     cmds += zigbee.configureReporting(0xFF01, 0x0076, DataType.UINT8, 0, 86400, null, [mfgCode: '0x119C'])              // Safety water temp reporting every 24 hours
 
