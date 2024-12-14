@@ -29,6 +29,7 @@
  * v2.0.0 Major code cleaning - Pseudo library being used - new capabilities added (2024-11-28)
  * v2.1.0 Add DR Icon (2023-12-02)
  * v2.2.0 Add max PI heating (2024-12-06)
+ * v2.2.1 Library fix (2024-12-13)
  */
 
 metadata {
@@ -146,8 +147,8 @@ def configure() {
 
     cmds += zigbee.configureReporting(0x0201, 0x0000, 0x29, 30, 580, (int) tempChange)                  // local temperature
     cmds += zigbee.configureReporting(0x0201, 0x0008, 0x20, 59, 590, (int) heatingChange)               // PI heating demand
-    cmds += zigbee.configureReporting(0x0702, 0x0000, 0x25, 59, 1799, (int) energyChange)    // Energy reading
-    cmds += zigbee.configureReporting(0x0B04, 0x0505, 0x29, 30, 600)                                    // Voltage
+    cmds += zigbee.configureReporting(0x0702, 0x0000, 0x25, 59, 1799, (int) energyChange)               // Energy reading
+    cmds += zigbee.configureReporting(0x0B04, 0x0505, 0x29, 30, 600, 1)                                 // Voltage
     cmds += zigbee.configureReporting(0x0201, 0x0012, 0x29, 15, 302, 40)                                // occupied heating setpoint
     cmds += zigbee.configureReporting(0x0204, 0x0000, 0x30, 1, 0)                                       // temperature display mode
     cmds += zigbee.configureReporting(0x0204, 0x0001, 0x30, 1, 0)                                       // keypad lockout

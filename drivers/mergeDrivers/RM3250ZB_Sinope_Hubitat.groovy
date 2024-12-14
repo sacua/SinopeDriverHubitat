@@ -18,6 +18,7 @@
  * v1.4.0 Correct typo mistake in Cron Scheduling
  * V1.5.0 Consistency between driver from RM3500ZB
  * v2.0.0 Major code cleaning - Pseudo library being used (2024-11-28)
+ * v2.0.1 Remove currentMeter (not fully supported) and library fix (2024-12-11)
  */
 
 metadata
@@ -29,7 +30,6 @@ metadata
         capability 'Outlet'
         capability 'PowerMeter'
         capability 'EnergyMeter'
-        capability 'CurrentMeter'
         capability 'VoltageMeasurement'
 
         attribute 'cost', 'number'
@@ -90,8 +90,7 @@ def configure() {
 
     // Configure Reporting
     cmds += zigbee.configureReporting(0x0006, 0x0000, 0x10, 0, 600, null)                               // On/off state
-    cmds += zigbee.configureReporting(0x0B04, 0x0505, 0x29, 30, 600)                                    // Voltage
-    cmds += zigbee.configureReporting(0x0B04, 0x0508, 0x29, 30, 600)                                    // Current
+    cmds += zigbee.configureReporting(0x0B04, 0x0505, 0x29, 30, 600, 1)                                 // Voltage
     cmds += zigbee.configureReporting(0x0B04, 0x050B, 0x29, 30, 600, (int) powerReport)                 // Active power reporting
     cmds += zigbee.configureReporting(0x0702, 0x0000, DataType.UINT48, 59, 1799, (int) energyChange)    // Energy reading
 
@@ -107,7 +106,6 @@ def refresh() {
     def cmds = []
     cmds += zigbee.readAttribute(0x0006, 0x0000)    // Read on/off state
     cmds += zigbee.readAttribute(0x0B04, 0x0505)    // Read voltage
-    cmds += zigbee.readAttribute(0x0B04, 0x0508)    // Read current
     cmds += zigbee.readAttribute(0x0B04, 0x050B)    // Read active power
     cmds += zigbee.readAttribute(0x0702, 0x0000)    // Read energy delivered
 
@@ -173,6 +171,7 @@ def on() {
  * v1.0.0 Initial commit (2024-11-28)
  * v1.1.0 Add floor temperature reading and DR Icon (2024-12-02)
  * v1.1.1 Bug related to floor temperature and room temperatyre (2024-12-03)
+ * v1.1.2 Bug fix related to zero value (2024-12-13)
  */
 
 // Constants
@@ -345,14 +344,14 @@ def parse(String description) {
                     name = 'voltage'
                     value = getRMSVoltage(descMap.value)
                     unit = 'V'
-                    descriptionText = "Voltage is ${value} ${unit}"
+                    descriptionText = "Voltage of ${device.displayName} is ${value} ${unit}"
                     break
 
                 case 0x0508:
                     name = 'amperage'
                     value = getRMSCurrent(descMap.value)
                     unit = 'A'
-                    descriptionText = "Current is ${value} ${unit}"
+                    descriptionText = "Current of ${device.displayName} is ${value} ${unit}"
                     break
 
                 case 0x050B:
@@ -428,7 +427,7 @@ def parse(String description) {
                     descriptionText = "The gfci status of ${device.displayName} is ${value}}"
                     break
                 default:
-                    //logDebug("unhandled custom attribute report - cluster ${descMap.cluster} attribute ${descMap.attrId} value ${descMap.value}")
+                    logDebug("unhandled custom attribute report - cluster ${descMap.cluster} attribute ${descMap.attrId} value ${descMap.value}")
                     break
             }
             break
@@ -438,7 +437,7 @@ def parse(String description) {
             break
     }
 
-    if (value) {
+    if (descriptionText) {
         sendEvent(name:name, value:value, descriptionText:descriptionText, unit:unit, type:type)
     }
 }
@@ -959,6 +958,7 @@ private getSafetyWaterTemperature(value) {
             return 'false'
     }
 }
+
 
 //-- Other generic functions -----------------------------------------------------------------------------------
 private getTemperature(value) {

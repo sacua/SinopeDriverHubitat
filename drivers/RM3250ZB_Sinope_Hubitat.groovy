@@ -18,6 +18,7 @@
  * v1.4.0 Correct typo mistake in Cron Scheduling
  * V1.5.0 Consistency between driver from RM3500ZB
  * v2.0.0 Major code cleaning - Pseudo library being used (2024-11-28)
+ * v2.0.1 Remove currentMeter (not fully supported) and library fix (2024-12-11)
  */
 
 metadata
@@ -29,7 +30,6 @@ metadata
         capability 'Outlet'
         capability 'PowerMeter'
         capability 'EnergyMeter'
-        capability 'CurrentMeter'
         capability 'VoltageMeasurement'
 
         attribute 'cost', 'number'
@@ -90,8 +90,7 @@ def configure() {
 
     // Configure Reporting
     cmds += zigbee.configureReporting(0x0006, 0x0000, 0x10, 0, 600, null)                               // On/off state
-    cmds += zigbee.configureReporting(0x0B04, 0x0505, 0x29, 30, 600)                                    // Voltage
-    cmds += zigbee.configureReporting(0x0B04, 0x0508, 0x29, 30, 600)                                    // Current
+    cmds += zigbee.configureReporting(0x0B04, 0x0505, 0x29, 30, 600, 1)                                 // Voltage
     cmds += zigbee.configureReporting(0x0B04, 0x050B, 0x29, 30, 600, (int) powerReport)                 // Active power reporting
     cmds += zigbee.configureReporting(0x0702, 0x0000, DataType.UINT48, 59, 1799, (int) energyChange)    // Energy reading
 
@@ -107,7 +106,6 @@ def refresh() {
     def cmds = []
     cmds += zigbee.readAttribute(0x0006, 0x0000)    // Read on/off state
     cmds += zigbee.readAttribute(0x0B04, 0x0505)    // Read voltage
-    cmds += zigbee.readAttribute(0x0B04, 0x0508)    // Read current
     cmds += zigbee.readAttribute(0x0B04, 0x050B)    // Read active power
     cmds += zigbee.readAttribute(0x0702, 0x0000)    // Read energy delivered
 
