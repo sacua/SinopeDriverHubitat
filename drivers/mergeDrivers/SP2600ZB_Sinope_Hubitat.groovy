@@ -387,8 +387,6 @@ def parse(String description) {
                     value = getActivePower(descMap.value)
                     unit = 'W'
                     descriptionText = "${device.displayName} is delivering ${value}${unit}"
-                    state.lastPowerReceivedAt= now()
-                    logDebug("POWER DEBUG cluster ${descMap.cluster} attribute ${descMap.attrId} value ${descMap.value}")
                     break
 
                 case 0x050D:
