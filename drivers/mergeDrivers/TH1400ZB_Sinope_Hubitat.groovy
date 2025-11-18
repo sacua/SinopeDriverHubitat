@@ -23,6 +23,7 @@
  * v2.1.1 Bug related to floor temperature and room temperatyre (2024-12-03)
  * v2.2.0 Add max PI heating and floor/room temperature bug fix (2024-12-08)
  * v2.2.1 Library fix (2024-12-13)
+ * v2.3.0 Add min and max heating setpoint capability (2025-11-17)
  */
 
 metadata
@@ -67,7 +68,9 @@ metadata
         input name: 'FloorLimitMaxParam', type: 'number', title:'Floor high limit (5C to 36C / 41F to 97F)', description: 'The maximum temperature limit of the floor when in ambient control mode.', range:'5..97', required: false
         input name: 'AuxiliaryCycleLengthParam', type: 'enum', title:'Auxiliary cycle length', options: ['disable, 15 seconds', '30 minutes'], required: false
         input name: 'limitPIHeating', type: 'enum', title: 'Limit PI heating', description: 'Limit PI heating when DR Icon is on', options:[255: '100 (default)', 75: '75', 50: '50', 25: '25'], defaultValue: '255', required: true
-
+        input name: 'minSetpoint', type: 'number', title: 'Minimum Setpoint', description: 'Minumum setpoint temperature in Celsius/100, 500..3000', range: '500..3000', defaultValue: 500
+        input name: 'maxSetpoint', type: 'number', title: 'Maximum Setpoint', description: 'Maximum setpoint temperature in Celsius/100, 500..3000', range: '500..3000', defaultValue: 3000
+        
         input name: 'tempChange', type: 'number', title: 'Temperature change', description: 'Minumum change of temperature reading to trigger report in Celsius/100, 5..50', range: '5..50', defaultValue: 50
         input name: 'heatingChange', type: 'number', title: 'Heating change', description: 'Minimum change in the PI heating in % to trigger power and PI heating reporting, 1..25', range: '1..25', defaultValue: 5
 
@@ -113,6 +116,12 @@ def configure() {
     if (energyChange == null) {
         energyChange = 10 as int
     }
+    if (minSetpoint == null) {
+        minSetpoint = 500 as int
+    }
+    if (maxSetpoint == null) {
+        maxSetpoint = 3000 as int
+    }
 
     cmds += zigbee.configureReporting(0x0201, 0x0000, 0x29, 30, 580, (int) tempChange)      // local temperature
     cmds += zigbee.configureReporting(0x0201, 0x0008, 0x20, 59, 590, (int) heatingChange)   // PI heating demand
@@ -128,6 +137,10 @@ def configure() {
     } else {
         cmds += zigbee.writeAttribute(0x0204, 0x0000, 0x30, 1)    // Wr °F on thermostat display
     }
+
+    // Configure range of heating setpoint
+    cmds += zigbee.writeAttribute(0x0201, 0x0015, 0x29, (int) minSetpoint) // Write min Heat Setpoint
+    cmds += zigbee.writeAttribute(0x0201, 0x0016, 0x29, (int) maxSetpoint) // Write max Heat Setpoint
 
     // Configure display mode
     if (prefBacklightMode == null) {
@@ -313,6 +326,7 @@ def off() {
  * v1.1.0 Add floor temperature reading and DR Icon (2024-12-02)
  * v1.1.1 Bug related to floor temperature and room temperatyre (2024-12-03)
  * v1.1.2 Bug fix related to zero value (2024-12-13)
+ * v1.2.0 Add min and max heating setpoint capability (2025-11-17)
  */
 
 // Constants
@@ -432,6 +446,18 @@ def parse(String description) {
                     state.setTemperatureTypeDigital = false
                     descriptionText = "The heating set point of ${device.displayName} is set at ${value}${unit} [${type}]"
                     sendEvent(name: 'thermostatSetpoint', value: value, unit: getTemperatureScale()) //For interoperability with SharpTools
+                    break
+
+                case 0x0015:
+                    name = 'lowHeatingSetpoint'
+                    value = getModeMap()[descMap.value]
+                    descriptionText = "The low heating set point of ${device.displayName} is set at ${value}${unit} [${type}]"
+                    break
+
+                case 0x0016:
+                    name = 'maxHeatingSetpoint'
+                    value = getModeMap()[descMap.value]
+                    descriptionText = "The max heating set point of ${device.displayName} is set at ${value}${unit} [${type}]"
                     break
 
                 case 0x001C:

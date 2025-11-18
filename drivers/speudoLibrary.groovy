@@ -15,6 +15,7 @@
  * v1.1.0 Add floor temperature reading and DR Icon (2024-12-02)
  * v1.1.1 Bug related to floor temperature and room temperatyre (2024-12-03)
  * v1.1.2 Bug fix related to zero value (2024-12-13)
+ * v1.2.0 Add min and max heating setpoint capability (2025-11-17)
  */
 
 // Constants
@@ -134,6 +135,18 @@ def parse(String description) {
                     state.setTemperatureTypeDigital = false
                     descriptionText = "The heating set point of ${device.displayName} is set at ${value}${unit} [${type}]"
                     sendEvent(name: 'thermostatSetpoint', value: value, unit: getTemperatureScale()) //For interoperability with SharpTools
+                    break
+
+                case 0x0015:
+                    name = 'lowHeatingSetpoint'
+                    value = getModeMap()[descMap.value]
+                    descriptionText = "The low heating set point of ${device.displayName} is set at ${value}${unit} [${type}]"
+                    break
+
+                case 0x0016:
+                    name = 'maxHeatingSetpoint'
+                    value = getModeMap()[descMap.value]
+                    descriptionText = "The max heating set point of ${device.displayName} is set at ${value}${unit} [${type}]"
                     break
 
                 case 0x001C:
