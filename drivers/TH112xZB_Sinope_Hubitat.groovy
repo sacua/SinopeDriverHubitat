@@ -31,6 +31,7 @@
  * v2.2.0 Add max PI heating (2024-12-06)
  * v2.2.1 Library fix (2024-12-13)
  * v2.3.0 Add min and max heating setpoint capability (2025-11-17)
+ * v2.3.1 BacklightModes fix for G2 (2026-09-20)
  */
 
 metadata {

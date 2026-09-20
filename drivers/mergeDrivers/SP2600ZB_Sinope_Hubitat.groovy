@@ -201,15 +201,16 @@ def flash(rateToFlash) {
  * v1.1.1 Bug related to floor temperature and room temperatyre (2024-12-03)
  * v1.1.2 Bug fix related to zero value (2024-12-13)
  * v1.2.0 Add min and max heating setpoint capability (2025-11-17)
+ * v1.2.1 BacklightModes fix for G2 (2026-09-20)
  */
 
 // Constants
 import groovy.transform.Field
 
-@Field static final Map constBacklightModes = [ 'off': 0x0, 'adaptive': 0x1, 'on': 0x1,
+@Field static final Map constBacklightModes = [ 'off': 0x0, 'on': 0x1, 'adaptive': 0x1,
                                                0x0: 'off', 0x1: 'on' ]
-@Field static final Map constBacklightModesG2 = [ 'off': 0x2, 'adaptive': 0x0, 'on': 0x1,
-                                                 0x2: 'off', 0x0: 'adaptive', 0x1: 'on' ]
+@Field static final Map constBacklightModesG2 = [ 'off': 0x0, 'on': 0x1, 'adaptive': 0x2,
+                                                 0x0: 'off', 0x1: 'on', 0x2: 'adaptive' ]
 @Field static final Map constSecondTempDisplayModes =  [ 0x0 : 'auto', 0x01: 'setpoint', 0x02: 'outdoor',
                                                         'auto': 0x0, 'setpoint': 0x1, 'outdoor': 0x2 ]
 @Field static final Map constThermostatCycles = [ 'short': 0x000F, 'long': 0x0384,
@@ -449,7 +450,7 @@ def parse(String description) {
 
                     descriptionText = "The floor limit status of ${device.displayName} is ${value}}"
                     break
-                
+
                 case 0x010D: // https://github.com/claudegel/sinope-zha
                     name = 'roomTemperature'
                     value = getTemperature(descMap.value)

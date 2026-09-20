@@ -31,6 +31,7 @@
  * v2.2.0 Add max PI heating and floor/room temperature bug fix (2024-12-08)
  * v2.2.1 Library fix (2024-12-13)
  * v2.3.0 Add min and max heating setpoint capability (2025-11-17)
+ * v2.3.1 BacklightModes fix for G2 (2026-09-20)
  */
 
 metadata
@@ -102,7 +103,7 @@ metadata
         input name: 'limitPIHeating', type: 'enum', title: 'Limit PI heating', description: 'Limit PI heating when DR Icon is on', options:[255: '100 (default)', 75: '75', 50: '50', 25: '25'], defaultValue: '255', required: true
         input name: 'minSetpoint', type: 'number', title: 'Minimum Setpoint', description: 'Minumum setpoint temperature in Celsius/100, 500..3000', range: '500..3000', defaultValue: 500
         input name: 'maxSetpoint', type: 'number', title: 'Maximum Setpoint', description: 'Maximum setpoint temperature in Celsius/100, 500..3000', range: '500..3000', defaultValue: 3000
-        
+
         input name: 'tempChange', type: 'number', title: 'Temperature change', description: 'Minumum change of temperature reading to trigger report in Celsius/100, 5..50', range: '5..50', defaultValue: 50
         input name: 'heatingChange', type: 'number', title: 'Heating change', description: 'Minimum change in the PI heating in % to trigger power and PI heating reporting, 1..25', range: '1..25', defaultValue: 5
         input name: 'energyChange', type: 'number', title: 'Energy increment', description: 'Minimum increment of the energy meter in Wh to trigger energy reporting, 10..*', range: '10..*', defaultValue: 10
@@ -379,15 +380,16 @@ def off() {
  * v1.1.1 Bug related to floor temperature and room temperatyre (2024-12-03)
  * v1.1.2 Bug fix related to zero value (2024-12-13)
  * v1.2.0 Add min and max heating setpoint capability (2025-11-17)
+ * v1.2.1 BacklightModes fix for G2 (2026-09-20)
  */
 
 // Constants
 import groovy.transform.Field
 
-@Field static final Map constBacklightModes = [ 'off': 0x0, 'adaptive': 0x1, 'on': 0x1,
+@Field static final Map constBacklightModes = [ 'off': 0x0, 'on': 0x1, 'adaptive': 0x1,
                                                0x0: 'off', 0x1: 'on' ]
-@Field static final Map constBacklightModesG2 = [ 'off': 0x2, 'adaptive': 0x0, 'on': 0x1,
-                                                 0x2: 'off', 0x0: 'adaptive', 0x1: 'on' ]
+@Field static final Map constBacklightModesG2 = [ 'off': 0x0, 'on': 0x1, 'adaptive': 0x2,
+                                                 0x0: 'off', 0x1: 'on', 0x2: 'adaptive' ]
 @Field static final Map constSecondTempDisplayModes =  [ 0x0 : 'auto', 0x01: 'setpoint', 0x02: 'outdoor',
                                                         'auto': 0x0, 'setpoint': 0x1, 'outdoor': 0x2 ]
 @Field static final Map constThermostatCycles = [ 'short': 0x000F, 'long': 0x0384,
@@ -627,7 +629,7 @@ def parse(String description) {
 
                     descriptionText = "The floor limit status of ${device.displayName} is ${value}}"
                     break
-                
+
                 case 0x010D: // https://github.com/claudegel/sinope-zha
                     name = 'roomTemperature'
                     value = getTemperature(descMap.value)
