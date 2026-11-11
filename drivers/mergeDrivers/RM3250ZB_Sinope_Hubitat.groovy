@@ -174,6 +174,7 @@ def on() {
  * v1.1.2 Bug fix related to zero value (2024-12-13)
  * v1.2.0 Add min and max heating setpoint capability (2025-11-17)
  * v1.2.1 BacklightModes fix for G2 (2026-09-20)
+ * v1.2.2 Does not re-schedule setPoint if outside of min and max setPoint (2026-11-11)
  */
 
 // Constants
@@ -798,7 +799,6 @@ def setHeatingSetpoint(preciseDegrees) {
 
 def Setpoint() {
     if (state.setPoint != device.currentValue('heatingSetpoint')) {
-        runIn(30, 'Setpoint') //To make sure that set point temperature is always received by the device. 30 seconds to not overload in case of power outage when device is not responding
         def temperatureScale = getTemperatureScale()
         def degrees = state.setPoint
         def cmds = []
@@ -813,6 +813,10 @@ def Setpoint() {
 
         // Submit zigbee commands
         sendZigbeeCommands(cmds)
+
+        if (celsius100 >= minSetpoint && celsius100 <= maxSetpoint) {
+            runIn(30, 'Setpoint') //To make sure that set point temperature is always received by the device. 30 seconds to not overload in case of power outage when device is not responding
+        }
     }
 }
 

@@ -25,6 +25,7 @@
  * v2.2.1 Library fix (2024-12-13)
  * v2.3.0 Add min and max heating setpoint capability (2025-11-17)
  * v2.3.1 BacklightModes fix for G2 (2026-09-20)
+ * v2.3.2 Max heating setpoint change from 30 C to 36 C (2026-11-11)
  */
 
 metadata
@@ -69,8 +70,8 @@ metadata
         input name: 'FloorLimitMaxParam', type: 'number', title:'Floor high limit (5C to 36C / 41F to 97F)', description: 'The maximum temperature limit of the floor when in ambient control mode.', range:'5..97', required: false
         input name: 'AuxiliaryCycleLengthParam', type: 'enum', title:'Auxiliary cycle length', options: ['disable, 15 seconds', '30 minutes'], required: false
         input name: 'limitPIHeating', type: 'enum', title: 'Limit PI heating', description: 'Limit PI heating when DR Icon is on', options:[255: '100 (default)', 75: '75', 50: '50', 25: '25'], defaultValue: '255', required: true
-        input name: 'minSetpoint', type: 'number', title: 'Minimum Setpoint', description: 'Minumum setpoint temperature in Celsius/100, 500..3000', range: '500..3000', defaultValue: 500
-        input name: 'maxSetpoint', type: 'number', title: 'Maximum Setpoint', description: 'Maximum setpoint temperature in Celsius/100, 500..3000', range: '500..3000', defaultValue: 3000
+        input name: 'minSetpoint', type: 'number', title: 'Minimum Setpoint', description: 'Minumum setpoint temperature in Celsius/100, 500..3600', range: '500..3600', defaultValue: 500
+        input name: 'maxSetpoint', type: 'number', title: 'Maximum Setpoint', description: 'Maximum setpoint temperature in Celsius/100, 500..3600', range: '500..3600', defaultValue: 3000
 
         input name: 'tempChange', type: 'number', title: 'Temperature change', description: 'Minumum change of temperature reading to trigger report in Celsius/100, 5..50', range: '5..50', defaultValue: 50
         input name: 'heatingChange', type: 'number', title: 'Heating change', description: 'Minimum change in the PI heating in % to trigger power and PI heating reporting, 1..25', range: '1..25', defaultValue: 5
